@@ -39,6 +39,7 @@ class FastWooOrderLookup {
 
   /**
    * Filter: Data store name.
+   *
    * @param string $store
    *
    * @return string
@@ -123,13 +124,9 @@ class FastWooOrderLookup {
    */
   public function query( $query ) {
 
-    if (preg_match( '/\.meta_value LIKE \'%/', $query)) {
-      $query = preg_replace ('/\.meta_value LIKE \'%/', '.meta_value LIKE \'', $query);
-    } else if (preg_match( '/\sWHERE order_item_name LIKE \'%/', $query)) {
-      $query = preg_replace ('/\sWHERE order_item_name LIKE \'%/', ' WHERE order_item_name LIKE \'', $query);
-    }
-
-    return $query;
+    return str_replace(
+      array('.meta_value LIKE \'%', 'WHERE order_item_name LIKE \'%'),
+      array('.meta_value LIKE \'', 'WHERE order_item_name LIKE \''), $query );
   }
 }
 
