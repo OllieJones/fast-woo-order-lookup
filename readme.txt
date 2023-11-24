@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.4
 Requires PHP: 5.6
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ Searches for orders faster on sites with many order.
 
 == Description ==
 
-WooCommerce's Order page allows store owners to search for orders by customer name, email, and other attributes. By default, it does a general substring search. For example, if you put OllieJones into the search box, it will search with `LIKE '%OllieJones%'` using the leading wildcard `%`. That's astonishingly slow on sites with many orders.
+WooCommerce's Order and Subscription pages allow store owners to search for orders and subscriptions by customer name, email, and other attributes. By default, it does a general substring search. For example, if you put OllieJones into the search box, it will search with `LIKE '%OllieJones%'` using the leading wildcard `%`. That's astonishingly slow on sites with many orders.
 
 This plugin changes the search operation to do an anchored substring search, with `LIKE 'OllieJones%'` without the leading wildcard `%`. That's much faster as it can exploit an index in the database.
 
@@ -28,7 +28,7 @@ Thanks to Jetbrains for the use of their software development tools, especially 
 
 = What's the background for this? =
 
-See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/32826) for an example of the performance problem store owners have.
+See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/32826) for an example of the performance problem store owners have. See this [Subscriptions issue](https://github.com/Automattic/woocommerce-subscriptions-core/issues/183) for another example.
 
 = What's the fix? =
 
@@ -50,6 +50,10 @@ Add a covering index to WooCommerce's high-performance order store table called 
 
 
 == Changelog ==
+
+= 0.1.2 November 24, 2023
+
+Add support for speeding Subscriptions searches.
 
 = 0.1.1 November 19, 2023
 Birthday of Fast Woo Order Lookup. And, the birthday (in 1988) of the author's daughter Catharine.
