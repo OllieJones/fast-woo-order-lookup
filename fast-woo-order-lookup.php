@@ -36,8 +36,10 @@ class FastWooOrderLookup {
 	private static $instance = null;
 
 	private $textdex;
+	private $filtering = false;
 
-	private $initialized = false;
+	private $term;
+	private $trigram_clause;
 
 	/**
 	 * Filter: Data store name.
@@ -76,14 +78,10 @@ class FastWooOrderLookup {
 		add_filter( 'woocommerce_shop_subscription_search_results', array( $this, 'filter_search_results' ), 10, 3 );
 
 		$dir = plugin_dir_path( __FILE__ );
-		$dir = '/home/ollie/src/fast-woo-order-lookup/';  //TODO
 		require_once( $dir . 'code/class-textdex.php' );
 		$this->textdex = new Textdex();
 		$this->textdex->activate();
-		$this->textdex->doAllBatches();
-
-
-		$this->initialized = true;
+		$this->textdex->loadTextdex();
 	}
 
 	/**
@@ -94,10 +92,11 @@ class FastWooOrderLookup {
 	 * @return array
 	 */
 	public function filter_search_fields( $search_fields ) {
-		if ( ! $this->initialized ) {
+		if ( ! $this->textdex->isReady() ) {
 			return $search_fields;
 		}
 		/* Hook to mung the queries. */
+		$this->filtering = true;
 		add_filter( 'query', array( $this, 'query' ), 1, 1 );
 
 		return $search_fields;
@@ -114,17 +113,19 @@ class FastWooOrderLookup {
 	 */
 	public function filter_search_results( $order_ids, $term, $search_fields ) {
 
-		/* Discontinue filtering queries after the metadata search */
-		remove_filter( 'query', array( $this, 'query' ), 1 );
+		if ( $this->filtering ) {
+			/* Discontinue filtering queries after the metadata search */
+			remove_filter( 'query', array( $this, 'query' ), 1 );
+			$this->filtering = false;
+		}
 
 		return $order_ids;
 	}
 
 	/**
-	 * Filters the database query.
+	 * Mung the order metadata search queries to include the trigram selection clause.
 	 *
-	 * Mung the order metadata search queries to change LIKE '%whatever%' to LIKE 'whatever%'
-	 * to make them sargable.
+	 * This is a MISERABLE hack. There aren't any suitable hooks to do this more elegantly.
 	 *
 	 * @param string $query Database query.
 	 *
@@ -132,10 +133,28 @@ class FastWooOrderLookup {
 	 */
 	public function query( $query ) {
 
-		return str_replace(
-			array( '.meta_value LIKE \'%', 'WHERE order_item_name LIKE \'%', '.user_mail LIKE \'%' ),
-			array( '.meta_value LIKE \'', 'WHERE order_item_name LIKE \'', '.user_mail LIKE \'' ),
-			$query );
+		if ( ! $this->term ) {
+			$splits = explode( 'LIKE \'%', $query, 2 );
+			if ( 2 !== count( $splits ) ) {
+				return $query;
+			}
+			$splits = explode( '%\'', $splits[1] );
+			if ( 2 !== count( $splits ) ) {
+				return $query;
+			}
+			$this->term           = $splits[0];
+			$this->trigram_clause = $this->textdex->trigram_clause( $this->term );
+		}
+		$newQuery = $query;
+		if ( str_contains( $newQuery, 'woocommerce_order_items as order_item' ) ) {
+			$newQuery = str_replace( 'WHERE order_item_name LIKE', 'WHERE order_id IN (' . $this->trigram_clause . ') AND order_item_name LIKE', $newQuery );
+		} else if ( str_contains( $newQuery , 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os') ) {
+			/* empty, intentionally */
+		} else {
+			$newQuery = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $newQuery );
+		}
+
+		return $newQuery;
 	}
 }
 
@@ -175,7 +194,7 @@ function activate() {
 
 function deactivate() {
 
-	require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php.' );
+	require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
 	$textdex = new Textdex();
 	$textdex->deactivate();
 }
