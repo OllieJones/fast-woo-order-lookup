@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.4
 Requires PHP: 5.6
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -32,7 +32,7 @@ See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/3
 
 = What's the fix? =
 
-Judicious query munging with the `query` filter.  Nasty, but there aren't any suitable hooks for doing things more elegantly.
+Build a word-by-word lookup table, maintain it, and use it for the queries.
 
 = How can I make this even faster? =
 
@@ -50,6 +50,10 @@ Add a covering index to WooCommerce's high-performance order store table called 
 
 
 == Changelog ==
+
+= 0.1.3 March 21, 2024
+
+Build a text index table and use it.
 
 = 0.1.2 November 24, 2023
 
