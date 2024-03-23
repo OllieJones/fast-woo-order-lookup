@@ -72,16 +72,28 @@ class FastWooOrderLookup {
 	 * Configure this plugin to intercept metadata searches for WooCommerce orders.
 	 */
 	private function __construct() {
+		add_filter( 'query', array( $this, 'hack_hack_hack' ), 10, 1 );  //TODO this is debug crap
 		add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ), 10, 1 );
 		add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ), 10, 1 );
 		add_filter( 'woocommerce_shop_order_search_results', array( $this, 'filter_search_results' ), 10, 3 );
 		add_filter( 'woocommerce_shop_subscription_search_results', array( $this, 'filter_search_results' ), 10, 3 );
+		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ), 10, 1 );
+		add_filter( 'woocommerce_hpos_pre_query', array( $this, 'woocommerce_hpos_pre_query' ), 10, 3 );
+		add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
+
 
 		$dir = plugin_dir_path( __FILE__ );
 		require_once( $dir . 'code/class-textdex.php' );
 		$this->textdex = new Textdex();
 		$this->textdex->activate();
 		$this->textdex->loadTextdex();
+	}
+
+	public function hack_hack_hack( $query ) {   //TODO this is debug crap
+		/*	if ( str_contains( $query, 'Oliver')) {
+				$k = $query;
+			}*/
+		return $query;
 	}
 
 	/**
@@ -97,7 +109,7 @@ class FastWooOrderLookup {
 		}
 		/* Hook to mung the queries. */
 		$this->filtering = true;
-		add_filter( 'query', array( $this, 'query' ), 1, 1 );
+		add_filter( 'query', array( $this, 'standard_query' ), 1, 1 );
 
 		return $search_fields;
 	}
@@ -115,13 +127,120 @@ class FastWooOrderLookup {
 
 		if ( $this->filtering ) {
 			/* Discontinue filtering queries after the metadata search */
-			remove_filter( 'query', array( $this, 'query' ), 1 );
+			remove_filter( 'query', array( $this, 'standard_query' ), 1 );
 			$this->filtering = false;
 		}
 
 		return $order_ids;
 	}
 
+	/**
+	 * HPOS filter. Fix up the args.
+	 *
+	 * We use this to know we're about to get some queries we need to mung.
+	 *
+	 * @param $args
+	 *
+	 * @return mixed
+	 */
+	public function woocommerce_order_query_args( $args ) {
+		if ( ! $this->textdex->isReady() ) {
+			return $args;
+		}
+		if ( array_key_exists( 's', $args ) && is_string( $args['s'] ) ) {
+			$this->term = $args['s'];
+			$this->trigram_clause = $this->textdex->trigram_clause( $this->term );
+
+			/* Hook to mung the queries. */
+			$this->filtering = true;
+			add_filter( 'query', array( $this, 'standard_query' ), 1, 1 );
+		}
+
+		return $args;
+	}
+
+	/**
+	 *  HPOS filter. Fix up results.
+	 *
+	 * We use this to know we're done munging queries.
+	 *
+	 * @param $results
+	 * @param $args
+	 *
+	 * @return mixed
+	 */
+	public function woocommerce_order_query( $results, $args ) {
+		if ( $this->filtering ) {
+			/* Discontinue filtering queries after the search */
+			remove_filter( 'query', array( $this, 'standard_query' ), 1 );
+			$this->filtering = false;
+		}
+
+		return $results;
+	}
+
+	/**
+	 * woocommerce_hpos_pre_query filter.
+	 * Filters the orders array before the query takes place.
+	 *
+	 * Return a non-null value to bypass the HPOS default order queries.
+	 *
+	 * If the query includes limits via the `limit`, `page`, or `offset` arguments, we
+	 * encourage the `found_orders` and `max_num_pages` properties to also be set.
+	 *
+	 * @param array|null $order_data {
+	 *     An array of order data.
+	 *
+	 * @type int[] $orders Return an array of order IDs data to short-circuit the HPOS query,
+	 *                                or null to allow HPOS to run its normal query.
+	 * @type int $found_orders The number of orders found.
+	 * @type int $max_num_pages The number of pages.
+	 * }
+	 *
+	 * @param OrdersTableQuery $query The OrdersTableQuery instance.
+	 * @param string $sql The OrdersTableQuery instance.
+	 *
+	 * @since 8.2.0
+	 *
+	 */
+	public function woocommerce_hpos_pre_query( $order_data, $query, $sql ) {
+		return $order_data;
+	}
+
+	/**
+	 * Mung the order metadata search queries to include the trigram selection clause.
+	 *
+	 * This is a MISERABLE hack. There aren't any suitable hooks to do this more elegantly.
+	 *
+	 * @param string $query Database query.
+	 *
+	 * @return string
+	 */
+	public function standard_query( $query ) {
+
+		if ( ! $this->term ) {
+			$splits = explode( 'LIKE \'%', $query, 2 );
+			if ( 2 !== count( $splits ) ) {
+				return $query;
+			}
+			$splits = explode( '%\'', $splits[1] );
+			if ( 2 !== count( $splits ) ) {
+				return $query;
+			}
+			$this->term           = $splits[0];
+			$this->trigram_clause = $this->textdex->trigram_clause( $this->term );
+		}
+		$newQuery = $query;
+		if ( str_contains( $newQuery, 'woocommerce_order_items as order_item' ) ) {
+			$newQuery = str_replace( 'WHERE order_item_name LIKE', 'WHERE order_id IN (' . $this->trigram_clause . ') AND order_item_name LIKE', $newQuery );
+		} else if ( str_contains( $newQuery, 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os' ) ) {
+			/* empty, intentionally */
+		} else {
+			$newQuery = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $newQuery );
+		}
+
+		return $newQuery;
+	}
 	/**
 	 * Mung the order metadata search queries to include the trigram selection clause.
 	 *
@@ -148,7 +267,7 @@ class FastWooOrderLookup {
 		$newQuery = $query;
 		if ( str_contains( $newQuery, 'woocommerce_order_items as order_item' ) ) {
 			$newQuery = str_replace( 'WHERE order_item_name LIKE', 'WHERE order_id IN (' . $this->trigram_clause . ') AND order_item_name LIKE', $newQuery );
-		} else if ( str_contains( $newQuery , 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os') ) {
+		} else if ( str_contains( $newQuery, 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os' ) ) {
 			/* empty, intentionally */
 		} else {
 			$newQuery = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $newQuery );
@@ -156,6 +275,7 @@ class FastWooOrderLookup {
 
 		return $newQuery;
 	}
+
 }
 
 // Plugin name

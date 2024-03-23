@@ -57,6 +57,7 @@ QUERY;
 		$tablename  = $wpdb->prefix . 'fast_woo_textdex';
 		$postmeta   = $wpdb->postmeta;
 		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
+		$orders = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 
 		$done = false;
@@ -85,11 +86,15 @@ QUERY;
 				SELECT order_id id, order_item_name COLLATE utf8mb4_unicode_ci value
 				  FROM $orderitems
 				 WHERE order_id >= %d and order_id < %d
+				UNION ALL
+				SELECT id, billing_email COLLATE utf8mb4_unicode_ci value
+				  FROM $orders
+				 WHERE id >= %d and id < %d
 				) a
 				GROUP BY id;
 QUERY;
 			$wpdb->query( 'BEGIN;' );
-			$query     = $wpdb->prepare( $query, array( $first, $last, $first, $last, $first, $last ) );
+			$query     = $wpdb->prepare( $query, array( $first, $last, $first, $last, $first, $last, $first, $last ) );
 			$resultset = $wpdb->get_results( $query );
 			if ( false === $resultset ) {
 				$wpdb->bail( 'Order data retrieval failure' );
@@ -134,7 +139,7 @@ QUERY;
 	public function trigrams( $value ) {
 
 		$result = array();
-		$value  = preg_replace( '/\s+/', ' ', trim( $value ) );
+		$value  = mb_ereg_replace( '/\s+/', ' ', trim( $value ) );
 		$len    = strlen( $value );
 		if ( $len <= 0 ) {
 			return array();
@@ -146,7 +151,7 @@ QUERY;
 		$len = strlen( $value ) - 2;
 		if ( $len > 0 ) {
 			for ( $i = 0; $i < $len; $i ++ ) {
-				$result [ substr( $value, $i, 3 ) ] = 1;
+				$result [ mb_substr( $value, $i, 3 ) ] = 1;
 			}
 		}
 
