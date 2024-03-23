@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.4
 Requires PHP: 5.6
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -50,6 +50,10 @@ Add a covering index to WooCommerce's high-performance order store table called 
 
 
 == Changelog ==
+
+= 0.1.4 March 23, 2024
+
+Use trigrams, support both trad and HPOS orders.
 
 = 0.1.3 March 21, 2024
 

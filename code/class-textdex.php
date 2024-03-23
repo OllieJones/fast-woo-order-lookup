@@ -57,7 +57,7 @@ QUERY;
 		$tablename  = $wpdb->prefix . 'fast_woo_textdex';
 		$postmeta   = $wpdb->postmeta;
 		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
-		$orders = $wpdb->prefix . 'wc_orders';
+		$orders     = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 
 		$done = false;
@@ -139,8 +139,16 @@ QUERY;
 	public function trigrams( $value ) {
 
 		$result = array();
-		$value  = mb_ereg_replace( '/\s+/', ' ', trim( $value ) );
-		$len    = strlen( $value );
+		if ( ! is_string( $value ) ) {
+			return $result;
+		}
+		$value = trim( $value );
+		if ( mb_strlen( $value ) <= 0 ) {
+			return $result;
+		}
+		$value = mb_ereg_replace( '/\s+/', ' ', $value );
+		$value = trim( $value );
+		$len   = mb_strlen( $value );
 		if ( $len <= 0 ) {
 			return array();
 		} else if ( 1 === $len ) {
@@ -148,7 +156,7 @@ QUERY;
 		} else if ( 2 === $len ) {
 			$value .= ' ';
 		}
-		$len = strlen( $value ) - 2;
+		$len = mb_strlen( $value ) - 2;
 		if ( $len > 0 ) {
 			for ( $i = 0; $i < $len; $i ++ ) {
 				$result [ mb_substr( $value, $i, 3 ) ] = 1;
@@ -156,15 +164,29 @@ QUERY;
 		}
 
 		$result = array_keys( $result );
-		sort( $result );
+		natcasesort( $result );
 
 		return $result;
 	}
 
 	public function trigram_clause( $value ) {
 		global $wpdb;
-		$inlist   = array();
+		$inlist = array();
+
+		/* Short search terms */
+		if ( mb_strlen( $value ) < 3 ) {
+			/* Reviewer note: The secure escaping of LIKE terms in
+			 * $wpdb->esc_like() and $wpdb->prepare() is handled at a
+			 * higher level than the `query` filter and
+			 * so is not appropriate here. Hence esc_sql().
+			 */
+			return 'SELECT DISTINCT id FROM ' . $wpdb->prefix . 'fast_woo_textdex WHERE trigram LIKE ' . "'" . esc_sql( $value ) . "%'";
+		}
+		/* Normal search terms */
 		$trigrams = $this->trigrams( $value );
+		if ( 1 === count( $trigrams ) ) {
+			return $wpdb->prepare( 'SELECT id FROM ' . $wpdb->prefix . 'fast_woo_textdex WHERE trigram = %s', $trigrams[0] );
+		}
 		foreach ( $trigrams as $trigram ) {
 			$inlist[] = $wpdb->prepare( '%s', $trigram );
 		}
