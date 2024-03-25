@@ -3,6 +3,24 @@
 namespace Fast_Woo_Order_Lookup;
 
 class Textdex {
+
+	private $tablename;
+	public $meta_keys_to_monitor;
+	public $option_name;
+
+	public function __construct() {
+		global $wpdb;
+		$this->tablename            = $wpdb->prefix . 'fast_woo_textdex';
+		$this->meta_keys_to_monitor = array(
+			'_billing_address_index',
+			'_shipping_address_index',
+			'_billing_last_name',
+			'_billing_email',
+			'_billing_phone'
+		);
+		$this->option_name = FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status';
+	}
+
 	/**
 	 * Create the trigram table.
 	 *
@@ -10,24 +28,20 @@ class Textdex {
 	 */
 	public function activate() {
 		global $wpdb;
-		$tablename      = $wpdb->prefix . 'fast_woo_textdex';
-		$postmeta       = $wpdb->postmeta;
-		$ordersmeta     = $wpdb->prefix . 'wc_orders_meta';
-		$textdex_status = get_option( FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status',
-			array(
-				'new'     => true,
-				'current' => 0,
-				'batch'   => 50,
-				'last'    => - 1
-			) );
+		$tablename  = $this->tablename;
+		$postmeta   = $wpdb->postmeta;
+		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
+
+		$textdex_status  = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
 			$table  = <<<TABLE
 CREATE TABLE $tablename (
     id BIGINT NOT NULL,
 	trigram CHAR(3) NOT NULL,
-	PRIMARY KEY (trigram, id)
-);
+	PRIMARY KEY (trigram, id),
+	INDEX id (id)
+) ROW_FORMAT=COMPACT ENGINE=InnoDB;
 TABLE;
 			$result = $wpdb->query( $table );
 			if ( false === $result ) {
@@ -44,7 +58,7 @@ TABLE;
 
 QUERY;
 			$textdex_status['last'] = $wpdb->get_var( $query );
-			update_option( FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status', $textdex_status, false );
+			$this->update_option( $textdex_status );
 		}
 	}
 //('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
@@ -52,17 +66,12 @@ QUERY;
 	/**
 	 * @return void
 	 */
-	public function loadTextdex() {
+	public function load_textdex() {
 		global $wpdb;
-		$tablename  = $wpdb->prefix . 'fast_woo_textdex';
-		$postmeta   = $wpdb->postmeta;
-		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
-		$orders     = $wpdb->prefix . 'wc_orders';
-		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 
 		$done = false;
 		while( ! $done ) {
-			$textdex_status = get_option( FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status' );
+			$textdex_status = get_option( $this->option_name );
 			if ( $textdex_status['current'] > $textdex_status['last'] ) {
 				$done = true;
 				continue;
@@ -70,67 +79,23 @@ QUERY;
 			$first = $textdex_status['current'];
 			$last  = min( $first + $textdex_status['batch'], $textdex_status['last'] );
 
-			$query = <<<QUERY
-				SELECT id, GROUP_CONCAT(value SEPARATOR ' ') value
-				FROM (
-				SELECT post_id id, meta_value COLLATE utf8mb4_unicode_ci value
-				  FROM $postmeta
-				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
-				   AND post_id >= %d and post_id <= %d
-				UNION ALL
-				SELECT id id, meta_value COLLATE utf8mb4_unicode_ci value
-				  FROM $ordersmeta
-				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
-				   AND id >= %d and id < %d
-				UNION ALL
-				SELECT order_id id, order_item_name COLLATE utf8mb4_unicode_ci value
-				  FROM $orderitems
-				 WHERE order_id >= %d and order_id < %d
-				UNION ALL
-				SELECT id, billing_email COLLATE utf8mb4_unicode_ci value
-				  FROM $orders
-				 WHERE id >= %d and id < %d
-				) a
-				GROUP BY id;
-QUERY;
 			$wpdb->query( 'BEGIN;' );
-			$query     = $wpdb->prepare( $query, array( $first, $last, $first, $last, $first, $last, $first, $last ) );
-			$resultset = $wpdb->get_results( $query );
-			if ( false === $resultset ) {
-				$wpdb->bail( 'Order data retrieval failure' );
-			}
+			$resultset = $this->get_order_metadata( $first, $last );
 
-			foreach ( $resultset as $result ) {
-
-				foreach ( $this->trigrams( $result->value ) as $trigram ) {
-					$query  = $wpdb->prepare(
-						"INSERT IGNORE INTO $tablename (id, trigram) VALUES (%d, %s);",
-						array( $result->id, $trigram ) );
-					$status = $wpdb->query( $query );
-
-					if ( false === $status ) {
-						$wpdb->bail( 'Trigram insertion failure' );
-					}
-				}
-			}
+			$this->insert_trigrams( $resultset );
 
 			unset ( $resultset );
 			$wpdb->query( 'COMMIT;' );
 			$textdex_status['current'] = $last + 1;
-			update_option( FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status', $textdex_status, false );
+			$this->update_option( $textdex_status );
 		}
 	}
 
 	/**
 	 * @return bool true if the trigram index is ready to use.
 	 */
-	public function isReady() {
-		$textdex_status = get_option( FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status', array(
-			'new'     => true,
-			'current' => 0,
-			'batch'   => 50,
-			'last'    => - 1
-		) );
+	public function is_ready() {
+		$textdex_status = $this->get_option();
 
 		return $textdex_status['current'] > $textdex_status['last'];
 	}
@@ -196,12 +161,147 @@ QUERY;
 		return $clause;
 	}
 
+	/**
+	 * Deactivation action. Remove textdex table and option.
+	 *
+	 * @return void
+	 */
 	public function deactivate() {
 		global $wpdb;
-		$tablename = $wpdb->prefix . 'fast_woo_textdex';
-		$wpdb->query( 'DROP TABLE ' . $tablename );
-		delete_option( FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status' );
+		$wpdb->query( 'DROP TABLE ' . $this->tablename );
+		delete_option( $this->option_name );
 
+	}
+
+	/**
+	 * Shutdown action.
+	 *
+	 * Update the textdex for any orders where we've detected a potential change.
+	 *
+	 * @param array $order_ids
+	 *
+	 * @return void
+	 */
+	public function update( array $order_ids ) {
+		global $wpdb;
+		$tablename = $this->tablename;
+
+		if ( $this->is_ready() ) {
+			foreach ( $order_ids as $order_id ) {
+				/* Get rid of old metadata */
+				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE id = %d', $order_id ) );
+				/* Retrieve and add the new metadata */
+				$resultset = $this->get_order_metadata( $order_id );
+				$this->insert_trigrams( $resultset );
+			}
+		}
+		$textdex_status  = $this->get_option();
+		$original = $textdex_status['last'];
+		foreach ($order_ids as $order_id) {
+			$textdex_status['last'] = max ($textdex_status['last'], $order_id);
+		}
+		if ( $textdex_status['last'] !== $original) {
+			$this->update_option( $textdex_status );
+		}
+	}
+
+	/**
+	 * Get order metadata for a sequence of order ids (post_id values)
+	 *
+	 * @param int $first First order ID to get
+	 * @param int $last Last + 1 order ID to get. Default: Just get one.
+	 *
+	 * @return array|false|mixed|object|\stdClass[]|null
+	 */
+	private function get_order_metadata( $first, $last = null ) {
+		if ( null === $last ) {
+			$last = $first + 1;
+		}
+		global $wpdb;
+		$postmeta   = $wpdb->postmeta;
+		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
+		$orders     = $wpdb->prefix . 'wc_orders';
+		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
+
+
+		$query     = <<<QUERY
+				SELECT id, GROUP_CONCAT(value SEPARATOR ' ') value
+				FROM (
+				SELECT post_id id, meta_value COLLATE utf8mb4_unicode_ci value
+				  FROM $postmeta
+				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
+				   AND post_id >= %d and post_id <= %d
+				UNION ALL
+				SELECT id id, meta_value COLLATE utf8mb4_unicode_ci value
+				  FROM $ordersmeta
+				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
+				   AND id >= %d and id < %d
+				UNION ALL
+				SELECT order_id id, order_item_name COLLATE utf8mb4_unicode_ci value
+				  FROM $orderitems
+				 WHERE order_id >= %d and order_id < %d
+				UNION ALL
+				SELECT id, billing_email COLLATE utf8mb4_unicode_ci value
+				  FROM $orders
+				 WHERE id >= %d and id < %d
+				) a
+				GROUP BY id;
+QUERY;
+		$query     = $wpdb->prepare( $query, array( $first, $last, $first, $last, $first, $last, $first, $last ) );
+		$resultset = $wpdb->get_results( $query );
+		if ( false === $resultset ) {
+			$wpdb->bail( 'Order data retrieval failure' );
+		}
+
+		return $resultset;
+	}
+
+	/**
+	 * Insert a bunch of trigrams.
+	 *
+	 * @param $resultset
+	 *
+	 * @return void
+	 */
+	public function insert_trigrams( $resultset ) {
+		global $wpdb;
+		$tablename = $this->tablename;
+
+		foreach ( $resultset as $result ) {
+
+			foreach ( $this->trigrams( $result->value ) as $trigram ) {
+				$query  = $wpdb->prepare(
+					"INSERT IGNORE INTO $tablename (id, trigram) VALUES (%d, %s);",
+					array( $result->id, $trigram ) );
+				$status = $wpdb->query( $query );
+
+				if ( false === $status ) {
+					$wpdb->bail( 'Trigram insertion failure' );
+				}
+			}
+		}
+	}
+
+	/**
+	 * @return false|mixed|null
+	 */
+	public function get_option() {
+		return get_option( $this->option_name,
+			array(
+				'new'     => true,
+				'current' => 0,
+				'batch'   => 50,
+				'last'    => - 1
+			) );
+	}
+
+	/**
+	 * @param $textdex_status
+	 *
+	 * @return void
+	 */
+	public function update_option( $textdex_status ) {
+		update_option( $this->option_name, $textdex_status, false );
 	}
 
 }

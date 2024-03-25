@@ -40,6 +40,24 @@ class FastWooOrderLookup {
 
 	private $term;
 	private $trigram_clause;
+	private $orders_to_update = array();
+
+
+	public static function woocommerce_changing_order( $order_id, $order ) {
+		$instance = self::getInstance();
+		$instance->orders_to_update[ $order_id ] = 1;
+	}
+
+	public static function woocommerce_deleting_order( $order_id ) {
+		$instance = self::getInstance();
+		$instance->orders_to_update[ $order_id ] = 1;
+	}
+
+	public static function woocommerce_order_object_updated_props( $order, $props ) {
+		$instance = self::getInstance();
+		$order_id = $order->get_id();
+		$instance->orders_to_update[ $order_id ] = 1;
+	}
 
 	/**
 	 * Filter: Data store name.
@@ -72,6 +90,7 @@ class FastWooOrderLookup {
 	 * Configure this plugin to intercept metadata searches for WooCommerce orders.
 	 */
 	private function __construct() {
+		/* Query manipulation */
 		add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ), 10, 1 );
 		add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ), 10, 1 );
 		add_filter( 'woocommerce_shop_order_search_results', array( $this, 'filter_search_results' ), 10, 3 );
@@ -79,14 +98,25 @@ class FastWooOrderLookup {
 		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ), 10, 1 );
 		add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
 
-
 		$dir = plugin_dir_path( __FILE__ );
 		require_once( $dir . 'code/class-textdex.php' );
 		$this->textdex = new Textdex();
 		$this->textdex->activate();
-		$this->textdex->loadTextdex();
+		$this->textdex->load_textdex();
+
+		add_action( 'shutdown', array( $this, 'update_textdex' ), 1,0);
 	}
 
+	/**
+	 * 'shutdown' action handler to update trigram indexes when orders change.
+	 *
+	 * @return void
+	 */
+	public function update_textdex() {
+		if ( count ($this->orders_to_update) > 0 ) {
+			$this->textdex->update( array_keys( $this->orders_to_update ) );
+		}
+	}
 	/**
 	 * Filter. immediately before metadata search.
 	 *
@@ -95,7 +125,7 @@ class FastWooOrderLookup {
 	 * @return array
 	 */
 	public function filter_search_fields( $search_fields ) {
-		if ( ! $this->textdex->isReady() ) {
+		if ( ! $this->textdex->is_ready() ) {
 			return $search_fields;
 		}
 		/* Hook to mung the queries. */
@@ -170,11 +200,11 @@ class FastWooOrderLookup {
 	 * @return mixed
 	 */
 	public function woocommerce_order_query_args( $args ) {
-		if ( ! $this->textdex->isReady() ) {
+		if ( ! $this->textdex->is_ready() ) {
 			return $args;
 		}
 		if ( array_key_exists( 's', $args ) && is_string( $args['s'] ) ) {
-			$this->term = $args['s'];
+			$this->term           = $args['s'];
 			$this->trigram_clause = $this->textdex->trigram_clause( $this->term );
 
 			/* Hook to mung the queries. */
@@ -253,10 +283,21 @@ define( 'FAST_WOO_ORDER_LOOKUP_PLUGIN_URL', plugin_dir_url( FAST_WOO_ORDER_LOOKU
 register_activation_hook( __FILE__, 'Fast_Woo_Order_Lookup\activate' );
 register_deactivation_hook( __FILE__, 'Fast_Woo_Order_Lookup\deactivate' );
 
-/* Don't do anything until WooCommerce does ->load( 'order' ) */
+/* Don't do anything until WooCommerce does ->load( 'order' ). */
 add_action( 'woocommerce_order_data_store',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_data_store' ) );
 
+/* Hook anything that changes an order object */
+add_action( 'woocommerce_new_order',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_changing_order' ), 10, 2 );
+add_action( 'woocommerce_update_order',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_changing_order' ), 10, 2 );
+add_action( 'woocommerce_order_object_updated_props',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_object_updated_props' ), 10, 2 );
+add_action( 'woocommerce_delete_order',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+add_action( 'woocommerce_trash_order',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
 
 function activate() {
 	register_uninstall_hook( __FILE__, 'Fast_Woo_Order_Lookup\uninstall' );
