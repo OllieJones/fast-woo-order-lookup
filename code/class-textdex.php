@@ -1,6 +1,10 @@
-<?php
+<?php /** @noinspection SqlDialectInspection */
+
+/** @noinspection SqlNoDataSourceInspection */
 
 namespace Fast_Woo_Order_Lookup;
+
+const HOOKNAME = 'fast_woo_order_lookup_task';
 
 class Textdex {
 
@@ -66,7 +70,6 @@ QUERY;
 			$this->update_option( $textdex_status );
 		}
 	}
-//('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
 
 	/**
 	 * @return void
@@ -85,6 +88,7 @@ QUERY;
 			$first = $textdex_status['current'];
 			$last  = min( $first + $textdex_status['batch'], $textdex_status['last'] );
 
+			set_time_limit( 300 );
 			$wpdb->query( 'BEGIN;' );
 			$resultset = $this->get_order_metadata( $first, $last );
 
@@ -329,6 +333,23 @@ QUERY;
 	public function update_option( $textdex_status ) {
 		update_option( $this->option_name, $textdex_status, false );
 	}
+
+	/**
+	 * Shutdown handler to kick a cronjob to continue background processing.
+	 * Use only when DISABLE_WP_CRON is set.
+	 *
+	 * @return void
+	 */
+	public function kick_cron() {
+		if ( wp_doing_cron() ) {
+			/* NEVER hit the cron endpoint when doing cron, or you'll break lots of things */
+			return;
+		}
+		$url = get_site_url( null, 'wp-cron.php' );
+		$req = new \WP_Http();
+		$res = $req->get( $url );
+	}
+
 
 }
 

@@ -1,17 +1,18 @@
 <?php
+
 /**
  * Fast Woo Order Lookup
  *
  * @package       fast-woo-order-lookup
- * @author        Ollie Jones
+ * @author        OllieJones
  * @license       gplv2
  *
  * @wordpress-plugin
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       0.1.4
- * Author:        Ollie Jones
+ * Version:       0.2.1
+ * Author:        OllieJones
  * Author URI:    https://github.com/OllieJones
  * Text Domain:   fast-woo-order-lookup
  * Domain Path:   /languages
@@ -22,6 +23,8 @@
  * along with Fast Woo Order Lookup. If not, see <https://www.gnu.org/licenses/gpl-2.0.html/>.
  */
 
+/** @noinspection SqlNoDataSourceInspection */
+/** @noinspection SqlDialectInspection */
 namespace Fast_Woo_Order_Lookup;
 
 use WP_Query;
@@ -41,7 +44,6 @@ class FastWooOrderLookup {
 	private $term;
 	private $trigram_clause;
 	private $orders_to_update = array();
-
 
 	public static function woocommerce_changing_order( $order_id, $order ) {
 		$instance                                = self::getInstance();
@@ -115,6 +117,14 @@ class FastWooOrderLookup {
 		add_action( 'shutdown', array( $this, 'update_textdex' ), 1, 0 );
 	}
 
+	/**
+	 * Shutdown action handler to continue background (textdex) load.
+	 *
+	 * @return void
+	 */
+	public static function background_textdex () {
+
+	}
 	/**
 	 * 'shutdown' action handler to update trigram indexes when orders change.
 	 *
@@ -292,6 +302,12 @@ define( 'FAST_WOO_ORDER_LOOKUP_PLUGIN_URL', plugin_dir_url( FAST_WOO_ORDER_LOOKU
 register_activation_hook( __FILE__, 'Fast_Woo_Order_Lookup\activate' );
 register_deactivation_hook( __FILE__, 'Fast_Woo_Order_Lookup\deactivate' );
 
+/* Background text load processing */
+if ( wp_doing_cron() ) {
+	add_action( 'shutdown',
+		array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'background_textdex' ), 10, 0 );
+}
+
 /* Don't do anything until WooCommerce does ->load( 'order' ). */
 add_action( 'woocommerce_order_data_store',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_data_store' ) );
@@ -318,6 +334,11 @@ add_action( 'update_post_meta',
 
 function activate() {
 	register_uninstall_hook( __FILE__, 'Fast_Woo_Order_Lookup\uninstall' );
+	require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
+	$textdex = new Textdex();
+	$textdex->activate();
+	$textdex->load_textdex();
+
 }
 
 function deactivate() {
