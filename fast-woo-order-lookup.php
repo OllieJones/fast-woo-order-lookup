@@ -44,19 +44,27 @@ class FastWooOrderLookup {
 
 
 	public static function woocommerce_changing_order( $order_id, $order ) {
-		$instance = self::getInstance();
+		$instance                                = self::getInstance();
 		$instance->orders_to_update[ $order_id ] = 1;
 	}
 
 	public static function woocommerce_deleting_order( $order_id ) {
-		$instance = self::getInstance();
+		$instance                                = self::getInstance();
 		$instance->orders_to_update[ $order_id ] = 1;
 	}
 
 	public static function woocommerce_order_object_updated_props( $order, $props ) {
-		$instance = self::getInstance();
-		$order_id = $order->get_id();
+		$instance                                = self::getInstance();
+		$order_id                                = $order->get_id();
 		$instance->orders_to_update[ $order_id ] = 1;
+	}
+
+	public static function update_post_meta( $meta_id, $object_id, $meta_key, $_meta_value ) {
+		$instance = self::getInstance();
+		if ( $instance->textdex->is_order_meta_key( $meta_key ) ) {
+			$instance->orders_to_update[ $object_id ] = 1;
+		}
+
 	}
 
 	/**
@@ -104,7 +112,7 @@ class FastWooOrderLookup {
 		$this->textdex->activate();
 		$this->textdex->load_textdex();
 
-		add_action( 'shutdown', array( $this, 'update_textdex' ), 1,0);
+		add_action( 'shutdown', array( $this, 'update_textdex' ), 1, 0 );
 	}
 
 	/**
@@ -113,10 +121,11 @@ class FastWooOrderLookup {
 	 * @return void
 	 */
 	public function update_textdex() {
-		if ( count ($this->orders_to_update) > 0 ) {
+		if ( count( $this->orders_to_update ) > 0 ) {
 			$this->textdex->update( array_keys( $this->orders_to_update ) );
 		}
 	}
+
 	/**
 	 * Filter. immediately before metadata search.
 	 *
@@ -294,10 +303,18 @@ add_action( 'woocommerce_update_order',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_changing_order' ), 10, 2 );
 add_action( 'woocommerce_order_object_updated_props',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_object_updated_props' ), 10, 2 );
+/* Hook changes to order status. */
 add_action( 'woocommerce_delete_order',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
 add_action( 'woocommerce_trash_order',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+add_action( 'woocommerce_untrash_order',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+add_action( 'woocommerce_cancelled_order',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+add_action( 'update_post_meta',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'update_post_meta' ), 10, 4 );
+
 
 function activate() {
 	register_uninstall_hook( __FILE__, 'Fast_Woo_Order_Lookup\uninstall' );

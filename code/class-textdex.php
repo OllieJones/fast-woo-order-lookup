@@ -5,19 +5,24 @@ namespace Fast_Woo_Order_Lookup;
 class Textdex {
 
 	private $tablename;
-	public $meta_keys_to_monitor;
+
+	/** @var array Associative array, with keys named for meta_key values. */
+	private $meta_keys_to_monitor;
+
+	/** @var string Name of this plugin's option. */
 	public $option_name;
 
 	public function __construct() {
 		global $wpdb;
 		$this->tablename            = $wpdb->prefix . 'fast_woo_textdex';
 		$this->meta_keys_to_monitor = array(
-			'_billing_address_index',
-			'_shipping_address_index',
-			'_billing_last_name',
-			'_billing_email',
-			'_billing_phone'
+			'_billing_address_index'  => 1,
+			'_shipping_address_index' => 1,
+			'_billing_last_name'      => 1,
+			'_billing_email'          => 1,
+			'_billing_phone'          => 1
 		);
+
 		$this->option_name = FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status';
 	}
 
@@ -32,7 +37,7 @@ class Textdex {
 		$postmeta   = $wpdb->postmeta;
 		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
 
-		$textdex_status  = $this->get_option();
+		$textdex_status = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
 			$table  = <<<TABLE
@@ -41,7 +46,7 @@ CREATE TABLE $tablename (
 	trigram CHAR(3) NOT NULL,
 	PRIMARY KEY (trigram, id),
 	INDEX id (id)
-) ROW_FORMAT=COMPACT ENGINE=InnoDB;
+);
 TABLE;
 			$result = $wpdb->query( $table );
 			if ( false === $result ) {
@@ -74,6 +79,7 @@ QUERY;
 			$textdex_status = get_option( $this->option_name );
 			if ( $textdex_status['current'] > $textdex_status['last'] ) {
 				$done = true;
+				$wpdb->query( "ANALYZE TABLE " . $this->tablename );
 				continue;
 			}
 			$first = $textdex_status['current'];
@@ -100,7 +106,18 @@ QUERY;
 		return $textdex_status['current'] > $textdex_status['last'];
 	}
 
+	public function is_order_meta_key( $meta_key ) {
+		return array_key_exists( $meta_key, $this->meta_keys_to_monitor );
+	}
 
+
+	/**
+	 * Get the trigrams from a string of metadata.
+	 *
+	 * @param string $value
+	 *
+	 * @return string[] The trigrams, sorted and deduplicated.
+	 */
 	public function trigrams( $value ) {
 
 		$result = array();
@@ -134,6 +151,15 @@ QUERY;
 		return $result;
 	}
 
+	/**
+	 * Create the SQL statement that looks up a sequence of trigrams.
+	 *
+	 * Handle very short (<3) terms and longer terms correctly.
+	 *
+	 * @param string $value Search term.
+	 *
+	 * @return string SQL statement like SELECT id ...
+	 */
 	public function trigram_clause( $value ) {
 		global $wpdb;
 		$inlist = array();
@@ -195,12 +221,12 @@ QUERY;
 				$this->insert_trigrams( $resultset );
 			}
 		}
-		$textdex_status  = $this->get_option();
-		$original = $textdex_status['last'];
-		foreach ($order_ids as $order_id) {
-			$textdex_status['last'] = max ($textdex_status['last'], $order_id);
+		$textdex_status = $this->get_option();
+		$original       = $textdex_status['last'];
+		foreach ( $order_ids as $order_id ) {
+			$textdex_status['last'] = max( $textdex_status['last'], $order_id );
 		}
-		if ( $textdex_status['last'] !== $original) {
+		if ( $textdex_status['last'] !== $original ) {
 			$this->update_option( $textdex_status );
 		}
 	}
