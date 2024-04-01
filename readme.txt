@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.2.1
+Stable tag: 0.2.2
 License: GPLv2
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -43,7 +43,7 @@ Add a covering index to WooCommerce's high-performance order store table called 
 = The lookup table seems to be out of date. I can't find recent orders. What do I do? =
 
 1. Let the author know by creating an issue at https://github.com/OllieJones/fast-woo-order-lookup/issues
-2. Deactivate, then activate the plugin.
+2. Deactivate, then activate the plugin. This rebuilds the lookup table.
 
 == Installation ==
 
@@ -60,6 +60,10 @@ Activating the plugin can take a few minutes, because it must generate the looku
 
 
 == Changelog ==
+
+= 0.2.2 April 1, 2024 =
+
+Do trigram inserts in batches.
 
 = 0.2.1 March 26, 2024 =
 
