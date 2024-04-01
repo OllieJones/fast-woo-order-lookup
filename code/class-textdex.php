@@ -141,7 +141,7 @@ QUERY;
 	public function is_ready() {
 		$textdex_status = $this->get_option();
 
-		return $textdex_status['current'] > $textdex_status['last'];
+		return $textdex_status['current'] >= $textdex_status['last'];
 	}
 
 	public function is_order_meta_key( $meta_key ) {
