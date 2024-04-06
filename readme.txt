@@ -2,12 +2,12 @@
 Author URI: https://github.com/OllieJones
 Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 Donate link: 
-Contributors:  Ollie Jones
+Contributors:  OllieJones
 Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.2.2
+Stable tag: 0.2.3
 License: GPLv2
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,7 +16,7 @@ Searches for orders faster on sites with many order.
 
 == Description ==
 
-WooCommerce's Order and Subscription pages allow store owners to search for orders and subscriptions by customer name, email, and other attributes. By default, it does a general substring search. For example, if you put OllieJones into the search box, it will search with `LIKE '%WordPress%'` using the leading wildcard `%`. That's astonishingly slow on sites with many orders.
+WooCommerce's Order and Subscription pages allow store owners to search for orders and subscriptions by customer name, email, and other attributes. By default, it does a general substring search. For example, if you put OllieJones into the search box, it will search with `LIKE '%OllieJones%'` using the leading wildcard `%`. That's astonishingly slow on sites with many orders.
 
 Upon activation this plugin creates a special-purpose index table, a table of trigrams, to speed up that search. Then it uses those trigrams to search for orders.
 
@@ -57,9 +57,15 @@ Activating the plugin can take a few minutes, because it must generate the looku
 
 `wp plugin activate fast-woo-order-lookup`
 
+== Upgrade Notice ==
 
+An earlier version of this plugin did not use trigram-related full text search, and therefore did not find things users expected to find. Please upgrade.
 
 == Changelog ==
+
+= 0.2.3 April 6, 2024 =
+
+Ingest wp_wc_order_addresses info when creating trigram table.
 
 = 0.2.2 April 1, 2024 =
 

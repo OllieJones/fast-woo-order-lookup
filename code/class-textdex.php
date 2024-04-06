@@ -284,6 +284,7 @@ QUERY;
 	 * @return array|false|mixed|object|\stdClass[]|null
 	 */
 	private function get_order_metadata( $first, $last = null ) {
+		$first = $first + 0;
 		if ( null === $last ) {
 			$last = $first + 1;
 		}
@@ -292,32 +293,93 @@ QUERY;
 		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
 		$orders     = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
+		$addresses  = $wpdb->prefix . 'wc_order_addresses';
 
 
 		$query     = <<<QUERY
-				SELECT id, GROUP_CONCAT(value SEPARATOR ' ') value
+				SELECT DISTINCT id,  TRIM(value) value
 				FROM (
+				  SELECT @ifirst := %d ifirst, @ilast:= %d ilast
+				) ids
+				JOIN (
 				SELECT post_id id, meta_value COLLATE utf8mb4_unicode_ci value
 				  FROM $postmeta
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
-				   AND post_id >= %d and post_id < %d
+				   AND post_id >= @ifirst and post_id < @ilast
 				UNION ALL
 				SELECT order_id id, meta_value COLLATE utf8mb4_unicode_ci value
 				  FROM $ordersmeta
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
-				   AND order_id >= %d and order_id < %d
+				   AND order_id >= @ifirst and order_id < @ilast
 				UNION ALL
 				SELECT order_id id, order_item_name COLLATE utf8mb4_unicode_ci value
 				  FROM $orderitems
-				 WHERE order_id >= %d and order_id < %d
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
 				UNION ALL
 				SELECT id, billing_email COLLATE utf8mb4_unicode_ci value
 				  FROM $orders
-				 WHERE id >= %d and id < %d
-				) a
-				GROUP BY id;
+				 WHERE id >= @ifirst and id < @ilast
+				
+				UNION ALL
+				SELECT order_id id, first_name COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, last_name COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, company COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, address_1 COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, address_2 COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, city COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, state COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, postcode COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, country COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, email COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+				UNION ALL
+				SELECT order_id id, phone COLLATE utf8mb4_unicode_ci value
+				  FROM $addresses
+				 WHERE order_id >= @ifirst and order_id < @ilast
+
+
+				) a;
 QUERY;
-		$query     = $wpdb->prepare( $query, array( $first, $last, $first, $last, $first, $last, $first, $last ) );
+		$query     = $wpdb->prepare( $query, array( $first, $last ) );
 		$resultset = $wpdb->get_results( $query );
 		if ( false === $resultset ) {
 			$wpdb->bail( 'Order data retrieval failure' );
