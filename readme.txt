@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.2.3
+Stable tag: 0.2.4
 License: GPLv2
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -63,9 +63,9 @@ An earlier version of this plugin did not use trigram-related full text search, 
 
 == Changelog ==
 
-= 0.2.3 April 6, 2024 =
+= 0.2.4 April 6, 2024 =
 
-Ingest wp_wc_order_addresses info when creating trigram table.
+Ingest wp_wc_order_addresses info when creating trigram table, and handle pre-HPOS sites correctly.
 
 = 0.2.2 April 1, 2024 =
 

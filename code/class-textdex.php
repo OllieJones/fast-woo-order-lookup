@@ -22,7 +22,6 @@ class Textdex {
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
-	private $order_count = 0;
 
 	public function __construct() {
 		global $wpdb;
@@ -48,14 +47,15 @@ class Textdex {
 		$tablename  = $this->tablename;
 		$postmeta   = $wpdb->postmeta;
 		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
+		$orderaddr  = $wpdb->prefix . 'wc_order_addresses';
 
 		$textdex_status = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
 			$table  = <<<TABLE
 CREATE TABLE $tablename (
-    id BIGINT NOT NULL,
 	trigram CHAR(3) NOT NULL,
+    id BIGINT NOT NULL,
 	PRIMARY KEY (trigram, id),
 	INDEX id (id)
 );
@@ -67,21 +67,33 @@ TABLE;
 				}
 			}
 			unset ( $textdex_status['new'] );
-			$query                     = <<<QUERY
-			SELECT GREATEST (
-				(SELECT MAX(post_id) FROM $postmeta WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')),
-				(SELECT MAX(order_id) FROM $ordersmeta WHERE meta_key IN ('_billing_address_index','_shipping_address_index'))			       
-			) last,
-			LEAST (
-				(SELECT MIN(post_id) FROM $postmeta WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')),
-				(SELECT MIN(order_id) FROM $ordersmeta WHERE meta_key IN ('_billing_address_index','_shipping_address_index'))		
-			) first;
-
+			$query = <<<QUERY
+			SELECT  *
+			  FROM (
+			    	SELECT MAX(post_id) maxmeta, MIN(post_id) minmeta
+			     	  FROM $postmeta
+			         WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone') 
+			        ) a
+			  JOIN (
+ 			      SELECT MAX(order_id) maxhpos, MIN(order_id) minhpos
+			        FROM $ordersmeta WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
+			      ) b ON 1=1
+        	  JOIN (
+ 			      SELECT MAX(order_id) maxaddr, MIN(order_id) minaddr
+			        FROM $orderaddr 
+            ) c ON 1=1
 QUERY;
-			$resultset                 = $wpdb->get_results( $query );
-			$resultset                 = $resultset[0];
-			$textdex_status['last']    = $resultset->last + 1;
-			$textdex_status['current'] = $resultset->first;
+			$res   = $wpdb->get_results( $query );
+			$res   = $res[0];
+			$first = ( null !== $res->minmeta ) ? $res->minmeta : 0;
+			$first = ( null !== $res->minhpos && $res->minhpos < $first ) ? $res->minhpos : $first;
+			$first = ( null !== $res->minaddr && $res->minaddr < $first ) ? $res->minaddr : $first;
+			$last  = ( null !== $res->maxmeta ) ? $res->maxmeta : 0;
+			$last  = ( null !== $res->maxhpos && $res->maxhpos > $last ) ? $res->maxhpos : $last;
+			$last  = ( null !== $res->maxaddr && $res->maxaddr > $last ) ? $res->maxaddr : $last;
+
+			$textdex_status['last']    = $last + 1;
+			$textdex_status['current'] = $first + 0;
 			$this->update_option( $textdex_status );
 		}
 	}
@@ -102,7 +114,6 @@ QUERY;
 				$textdex_status['elapsed-load']      = microtime( true ) - $start;
 				$textdex_status['actual-inserts']    = $this->actual_inserts;
 				$textdex_status['attempted-inserts'] = $this->attempted_inserts;
-				$textdex_status['order_count']       = $this->order_count;
 				$textdex_status['optimized']         = true;
 				$textdex_status['memory']            = memory_get_usage() - $startmem;
 				$this->update_option( $textdex_status );
@@ -385,8 +396,6 @@ QUERY;
 			$wpdb->bail( 'Order data retrieval failure' );
 		}
 
-		$this->order_count += count( $resultset );
-
 		return $resultset;
 	}
 
@@ -432,8 +441,7 @@ QUERY;
 	 *
 	 * @return void
 	 */
-	public
-	function update_option(
+	public function update_option(
 		$textdex_status
 	) {
 		update_option( $this->option_name, $textdex_status, false );
@@ -445,8 +453,7 @@ QUERY;
 	 *
 	 * @return void
 	 */
-	public
-	function kick_cron() {
+	public function kick_cron() {
 		if ( wp_doing_cron() ) {
 			/* NEVER hit the cron endpoint when doing cron, or you'll break lots of things */
 			return;
@@ -475,7 +482,5 @@ QUERY;
 		$this->attempted_inserts += count( $trigrams );
 		$this->actual_inserts    += $result;
 	}
-
-
 }
 
