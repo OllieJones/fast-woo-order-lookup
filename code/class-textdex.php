@@ -104,47 +104,49 @@ QUERY;
 	public function load_textdex() {
 		global $wpdb;
 
-		$start    = microtime( true );
-		$startmem = memory_get_usage();
-		$done     = false;
-		while( ! $done ) {
-			$textdex_status = $this->get_option();
-			if ( $textdex_status['current'] >= $textdex_status['last'] ) {
-				$done                                = true;
-				$textdex_status['elapsed-load']      = microtime( true ) - $start;
-				$textdex_status['actual-inserts']    = $this->actual_inserts;
-				$textdex_status['attempted-inserts'] = $this->attempted_inserts;
-				$textdex_status['optimized']         = true;
-				$textdex_status['memory']            = memory_get_usage() - $startmem;
-				$this->update_option( $textdex_status );
-
-				continue;
-			}
-			$first = $textdex_status['current'];
-			$last  = min( $first + $textdex_status['batch'], $textdex_status['last'] );
-
-			set_time_limit( 300 );
-			$trigram_count = $textdex_status['trigram_batch'];
-			$wpdb->query( 'BEGIN;' );
-
-			$resultset = $this->get_order_metadata( $first, $last );
-			$trigrams  = array();
-			foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
-				$trigrams[] = $wpdb->prepare( '(%d,%s)', $trigram );
-				$trigram_count --;
-				if ( $trigram_count <= 0 ) {
-					$this->do_insert_statement( $trigrams );
-					$trigrams      = array();
-					$trigram_count = $textdex_status['trigram_batch'];
-				}
-			}
-			$this->do_insert_statement( $trigrams );
-			unset ( $resultset );
-			$wpdb->query( 'COMMIT;' );
-			$textdex_status['current'] = $last;
-			$this->update_option( $textdex_status );
+		while( $this->load_next_batch() ) {
+			/* empty */
 		}
+		$textdex_status = $this->get_option();
 	}
+
+	/**
+	 * Load the next batch of orders into the trigram table.
+	 *
+	 * @return bool true if there are still more batches to process.
+	 */
+	public function load_next_batch () {
+		$textdex_status = $this->get_option();
+		if ( $textdex_status['current'] >= $textdex_status['last'] ) {
+			return false;
+		}
+		$first = $textdex_status['current'];
+		$last  = min( $first + $textdex_status['batch'], $textdex_status['last'] );
+
+		set_time_limit( 300 );
+		$trigram_count = $textdex_status['trigram_batch'];
+		global $wpdb;
+		$wpdb->query( 'BEGIN;' );
+
+		$resultset = $this->get_order_metadata( $first, $last );
+		$trigrams  = array();
+		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
+			$trigrams[] = $wpdb->prepare( '(%d,%s)', $trigram );
+			$trigram_count --;
+			if ( $trigram_count <= 0 ) {
+				$this->do_insert_statement( $trigrams );
+				$trigrams      = array();
+				$trigram_count = $textdex_status['trigram_batch'];
+			}
+		}
+		$this->do_insert_statement( $trigrams );
+		unset ( $resultset );
+		$wpdb->query( 'COMMIT;' );
+		$textdex_status['current'] = $last;
+		$this->update_option( $textdex_status );
+		return ( $textdex_status['current'] < $textdex_status['last'] ) ;
+	}
+
 
 	/**
 	 * @return bool true if the trigram index is ready to use.
