@@ -102,12 +102,23 @@ QUERY;
 	 * @return void
 	 */
 	public function load_textdex() {
-		global $wpdb;
 
-		while( $this->load_next_batch() ) {
-			/* empty */
+		while( $this->have_more_batches() ) {
+			if ( ! $this->load_next_batch() ) {
+				break;
+			}
 		}
+	}
+
+	/**
+	 * More batches to process?
+	 *
+	 * @return bool true if there are still more batches to process.
+	 */
+	public function have_more_batches() {
 		$textdex_status = $this->get_option();
+
+		return ( $textdex_status['current'] < $textdex_status['last'] );
 	}
 
 	/**
@@ -115,7 +126,7 @@ QUERY;
 	 *
 	 * @return bool true if there are still more batches to process.
 	 */
-	public function load_next_batch () {
+	public function load_next_batch() {
 		$textdex_status = $this->get_option();
 		if ( $textdex_status['current'] >= $textdex_status['last'] ) {
 			return false;
@@ -144,7 +155,8 @@ QUERY;
 		$wpdb->query( 'COMMIT;' );
 		$textdex_status['current'] = $last;
 		$this->update_option( $textdex_status );
-		return ( $textdex_status['current'] < $textdex_status['last'] ) ;
+
+		return ( $textdex_status['current'] < $textdex_status['last'] );
 	}
 
 
@@ -152,9 +164,7 @@ QUERY;
 	 * @return bool true if the trigram index is ready to use.
 	 */
 	public function is_ready() {
-		$textdex_status = $this->get_option();
-
-		return $textdex_status['current'] >= $textdex_status['last'];
+		return ! $this->have_more_batches();
 	}
 
 	public function is_order_meta_key( $meta_key ) {
