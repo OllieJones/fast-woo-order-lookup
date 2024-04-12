@@ -25,10 +25,8 @@
 
 /** @noinspection SqlNoDataSourceInspection */
 /** @noinspection SqlDialectInspection */
-namespace Fast_Woo_Order_Lookup;
 
-use WP_Query;
-use wpdb;
+namespace Fast_Woo_Order_Lookup;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -66,7 +64,11 @@ class FastWooOrderLookup {
 		if ( $instance->textdex->is_order_meta_key( $meta_key ) ) {
 			$instance->orders_to_update[ $object_id ] = 1;
 		}
+	}
 
+	public static function textdex_batch_action() {
+		$instance = self::getInstance();
+		$instance->textdex->load_batch();
 	}
 
 	/**
@@ -122,9 +124,10 @@ class FastWooOrderLookup {
 	 *
 	 * @return void
 	 */
-	public static function background_textdex () {
+	public static function background_textdex() {
 
 	}
+
 	/**
 	 * 'shutdown' action handler to update trigram indexes when orders change.
 	 *
@@ -135,6 +138,7 @@ class FastWooOrderLookup {
 			$this->textdex->update( array_keys( $this->orders_to_update ) );
 		}
 	}
+
 
 	/**
 	 * Filter. immediately before metadata search.
@@ -219,10 +223,9 @@ class FastWooOrderLookup {
 	 * @return mixed
 	 */
 	public function woocommerce_order_query_args( $args ) {
-		if ( ! $this->textdex->is_ready() ) {
-			return $args;
-		}
-		if ( array_key_exists( 's', $args ) && is_string( $args['s'] ) ) {
+		$its_search          = array_key_exists( 's', $args ) && is_string( $args['s'] ) && strlen( $args['s'] ) > 0;
+		$its_order_id_search = array_key_exists( 'search_filter', $args ) && 'order_id' === $args ['search_filter'];
+		if ( $its_search && ! $its_order_id_search && $this->textdex->is_ready() ) {
 			$this->term           = $args['s'];
 			$this->trigram_clause = $this->textdex->trigram_clause( $this->term );
 
@@ -268,8 +271,13 @@ class FastWooOrderLookup {
 	 * @return string
 	 */
 	public function hpos_query( $query ) {
-		if ( str_contains( $query, 'wp_woocommerce_order_items AS search_query_items ON search_query_items.order_id = wp_wc_orders.id WHERE 1=1 AND' ) ) {
-			return str_replace( 'WHERE 1=1 AND', 'WHERE 1=1 AND  wp_wc_orders.id IN (' . $this->trigram_clause . ') AND ', $query );
+		global $wpdb;
+		$orders     = $wpdb->prefix . 'wc_orders';
+		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
+
+		if ( str_contains( $query, "$orderitems AS search_query_items ON search_query_items.order_id = $orders.id WHERE 1=1 AND" ) ||
+		     str_contains( $query, "$orders.id FROM $orders  WHERE 1=1 AND" ) ) {
+			return str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ") AND ", $query );
 		}
 
 		return $query;
@@ -302,12 +310,6 @@ define( 'FAST_WOO_ORDER_LOOKUP_PLUGIN_URL', plugin_dir_url( FAST_WOO_ORDER_LOOKU
 register_activation_hook( __FILE__, 'Fast_Woo_Order_Lookup\activate' );
 register_deactivation_hook( __FILE__, 'Fast_Woo_Order_Lookup\deactivate' );
 
-/* Background text load processing */
-if ( wp_doing_cron() ) {
-	add_action( 'shutdown',
-		array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'background_textdex' ), 10, 0 );
-}
-
 /* Don't do anything until WooCommerce does ->load( 'order' ). */
 add_action( 'woocommerce_order_data_store',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_data_store' ) );
@@ -330,6 +332,10 @@ add_action( 'woocommerce_cancelled_order',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
 add_action( 'update_post_meta',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'update_post_meta' ), 10, 4 );
+
+/* ActionScheduler action for loading textdex. */
+add_action( 'fast_woo_order_lookup_textdex_action',
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'textdex_batch_action' ) );
 
 
 function activate() {

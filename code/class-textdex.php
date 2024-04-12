@@ -4,8 +4,6 @@
 
 namespace Fast_Woo_Order_Lookup;
 
-const HOOKNAME = 'fast_woo_order_lookup_task';
-
 class Textdex {
 
 	private $tablename;
@@ -16,9 +14,9 @@ class Textdex {
 	/** @var string Name of this plugin's option. */
 	public $option_name;
 	/** @var int The maximum number of tuples per insert */
-	private $trigram_batch_size = 100;
+	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 50;
+	private $batch_size = 41;  // HACK HACK
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
@@ -103,10 +101,20 @@ QUERY;
 	 */
 	public function load_textdex() {
 
-		while( $this->have_more_batches() ) {
-			if ( ! $this->load_next_batch() ) {
-				break;
-			}
+		$this->schedule_batch();
+	}
+
+	public function load_batch() {
+		$result = $this->load_next_batch();
+		if ( $result ) {
+			$this->schedule_batch();
+		}
+	}
+
+	public function schedule_batch() {
+		if ( $this->have_more_batches() ) {
+			require_once( plugin_dir_path( __FILE__ ) . '/../libraries/action-scheduler/action-scheduler.php' );
+			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup', false, 10 );
 		}
 	}
 
@@ -142,12 +150,10 @@ QUERY;
 		$resultset = $this->get_order_metadata( $first, $last );
 		$trigrams  = array();
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
-			$trigrams[] = $wpdb->prepare( '(%d,%s)', $trigram );
-			$trigram_count --;
-			if ( $trigram_count <= 0 ) {
+			$trigrams[ $wpdb->prepare( '(%d,%s)', $trigram ) ] = 1;
+			if ( count( $trigrams ) >= $trigram_count ) {
 				$this->do_insert_statement( $trigrams );
-				$trigrams      = array();
-				$trigram_count = $textdex_status['trigram_batch'];
+				$trigrams = array();
 			}
 		}
 		$this->do_insert_statement( $trigrams );
@@ -156,7 +162,7 @@ QUERY;
 		$textdex_status['current'] = $last;
 		$this->update_option( $textdex_status );
 
-		return ( $textdex_status['current'] < $textdex_status['last'] );
+		return $textdex_status['current'] < $textdex_status['last'];
 	}
 
 
@@ -178,8 +184,11 @@ QUERY;
 			$resultset = array( (object) array( 'id' => 1, 'value' => $resultset ) );
 		}
 		foreach ( $resultset as $row ) {
-			$id     = $row->id;
-			$value  = $row->value;
+			$id    = $row->id;
+			$value = $row->value;
+			if ( $id == 3867 || $id == 3519 || str_contains( $value, 'ghanis' ) ) {
+				error_log( "$id: $value" );
+			} //HACK HACK
 			$result = array();
 			if ( ! is_string( $value ) ) {
 				break;
@@ -317,96 +326,99 @@ QUERY;
 		$orders     = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 		$addresses  = $wpdb->prefix . 'wc_order_addresses';
+		$collation  = $wpdb->collate;
 
 
-		$query     = <<<QUERY
-				SELECT DISTINCT id,  TRIM(value) value
+		$wpdb->query( $wpdb->prepare( 'SET @ifirst:=%d', $first ) );
+		$wpdb->query( $wpdb->prepare( 'SET @ilast:=%d', $last ) );
+		$query = <<<QUERY
+				SELECT id,  TRIM(value) value
 				FROM (
-				  SELECT @ifirst := %d ifirst, @ilast:= %d ilast
-				) ids
-				JOIN (
-				SELECT post_id id, meta_value COLLATE utf8mb4_unicode_ci value
+				SELECT post_id id, meta_value COLLATE $collation value
 				  FROM $postmeta
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
 				   AND post_id >= @ifirst and post_id < @ilast
+
 				UNION ALL
-				SELECT order_id id, meta_value COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, meta_value COLLATE $collation value
 				  FROM $ordersmeta
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
 				   AND order_id >= @ifirst and order_id < @ilast
+
 				UNION ALL
-				SELECT order_id id, order_item_name COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, order_item_name COLLATE $collation value
 				  FROM $orderitems
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT id, billing_email COLLATE utf8mb4_unicode_ci value
+				SELECT id, billing_email COLLATE $collation value
 				  FROM $orders
 				 WHERE id >= @ifirst and id < @ilast
 				
 				UNION ALL
-				SELECT order_id id, first_name COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, first_name COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, last_name COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, last_name COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, company COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, company COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, address_1 COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, address_1 COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, address_2 COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, address_2 COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, city COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, city COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, state COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, state COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, postcode COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, postcode COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, country COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, country COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, email COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, email COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
 
 				UNION ALL
-				SELECT order_id id, phone COLLATE utf8mb4_unicode_ci value
+				SELECT order_id id, phone COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= @ifirst and order_id < @ilast
-
-
-				) a;
+				) a
+			WHERE value IS NOT NULL;
 QUERY;
-		$query     = $wpdb->prepare( $query, array( $first, $last ) );
 		$resultset = $wpdb->get_results( $query );
 		if ( false === $resultset ) {
 			$wpdb->bail( 'Order data retrieval failure' );
 		}
+
+		error_log ("ifirst: $first  ilast: $last  rows: " . count($resultset));
+
 
 		return $resultset;
 	}
@@ -486,7 +498,7 @@ QUERY;
 		if ( ! is_array( $trigrams ) || 0 === count( $trigrams ) ) {
 			return;
 		}
-		$query  = 'INSERT IGNORE INTO ' . $this->tablename . ' (id, trigram) VALUES ' . implode( ',', $trigrams );
+		$query  = 'INSERT IGNORE INTO ' . $this->tablename . ' (id, trigram) VALUES ' . implode( ',', array_keys( $trigrams ) );
 		$result = $wpdb->query( $query );
 		if ( false === $result ) {
 			$wpdb->bail( 'inserts failure' );
