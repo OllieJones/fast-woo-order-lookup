@@ -276,7 +276,9 @@ class FastWooOrderLookup {
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 
 		if ( str_contains( $query, "$orderitems AS search_query_items ON search_query_items.order_id = $orders.id WHERE 1=1 AND" ) ||
-		     str_contains( $query, "$orders.id FROM $orders  WHERE 1=1 AND" ) ) {
+		     str_contains( $query, "SELECT $orders.id FROM $orders  WHERE 1=1 AND" ) ||
+		     str_contains( $query, "SELECT COUNT(DISTINCT $orders.id) FROM  $orders  WHERE 1=1 AND" )
+		) {
 			return str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ") AND ", $query );
 		}
 
