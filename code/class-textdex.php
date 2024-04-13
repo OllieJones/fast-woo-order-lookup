@@ -16,7 +16,7 @@ class Textdex {
 	/** @var int The maximum number of tuples per insert */
 	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 41;  // HACK HACK
+	private $batch_size = 100;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
@@ -100,8 +100,10 @@ QUERY;
 	 * @return void
 	 */
 	public function load_textdex() {
-
-		$this->schedule_batch();
+		//hack hack
+		while( $this->load_next_batch() ) {
+		}
+		//hack hack $this->schedule_batch();
 	}
 
 	public function load_batch() {
@@ -150,7 +152,7 @@ QUERY;
 		$resultset = $this->get_order_metadata( $first, $last );
 		$trigrams  = array();
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
-			$trigrams[ $wpdb->prepare( '(%d,%s)', $trigram ) ] = 1;
+			$trigrams[ $wpdb->prepare( '(%s,%d)', $trigram ) ] = 1;
 			if ( count( $trigrams ) >= $trigram_count ) {
 				$this->do_insert_statement( $trigrams );
 				$trigrams = array();
@@ -186,22 +188,18 @@ QUERY;
 		foreach ( $resultset as $row ) {
 			$id    = $row->id;
 			$value = $row->value;
-			if ( $id == 3867 || $id == 3519 || str_contains( $value, 'ghanis' ) ) {
-				error_log( "$id: $value" );
-			} //HACK HACK
-			$result = array();
 			if ( ! is_string( $value ) ) {
-				break;
+				continue;
 			}
 			$value = trim( $value );
 			if ( mb_strlen( $value ) <= 0 ) {
-				break;
+				continue;
 			}
-			$value = mb_ereg_replace( '/\s+/', ' ', $value );
+			$value = mb_ereg_replace( '\s+', ' ', $value );
 			$value = trim( $value );
 			$len   = mb_strlen( $value );
 			if ( $len <= 0 ) {
-				break;
+				continue;
 			} else if ( 1 === $len ) {
 				$value .= '  ';
 			} else if ( 2 === $len ) {
@@ -210,15 +208,8 @@ QUERY;
 			$len = mb_strlen( $value ) - 2;
 			if ( $len > 0 ) {
 				for ( $i = 0; $i < $len; $i ++ ) {
-					$result [ mb_substr( $value, $i, 3 ) ] = 1;
+					yield array( mb_substr( $value, $i, 3 ), $id );
 				}
-			}
-
-			$result = array_keys( $result );
-			natcasesort( $result );
-
-			foreach ( $result as $item ) {
-				yield array( $id, $item );
 			}
 		}
 	}
@@ -248,7 +239,7 @@ QUERY;
 		/* Normal search terms */
 		$trigrams = array();
 		foreach ( $this->get_trigrams( $value ) as $item ) {
-			$trigrams[] = $item[1];
+			$trigrams[] = $item[0];
 		}
 
 		if ( 1 === count( $trigrams ) ) {
@@ -329,89 +320,65 @@ QUERY;
 		$collation  = $wpdb->collate;
 
 
-		$wpdb->query( $wpdb->prepare( 'SET @ifirst:=%d', $first ) );
-		$wpdb->query( $wpdb->prepare( 'SET @ilast:=%d', $last ) );
-		$query = <<<QUERY
-				SELECT id,  TRIM(value) value
+		$query     = <<<QUERY
+				SELECT id, value
 				FROM (
 				SELECT post_id id, meta_value COLLATE $collation value
 				  FROM $postmeta
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
-				   AND post_id >= @ifirst and post_id < @ilast
+				   AND post_id >= %d and post_id < %d
 
 				UNION ALL
 				SELECT order_id id, meta_value COLLATE $collation value
 				  FROM $ordersmeta
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
-				   AND order_id >= @ifirst and order_id < @ilast
+				   AND order_id >= %d and order_id < %d
 
 				UNION ALL
 				SELECT order_id id, order_item_name COLLATE $collation value
 				  FROM $orderitems
-				 WHERE order_id >= @ifirst and order_id < @ilast
+				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
 				SELECT id, billing_email COLLATE $collation value
 				  FROM $orders
-				 WHERE id >= @ifirst and id < @ilast
+				 WHERE id >= %d and id < %d
 				
 				UNION ALL
-				SELECT order_id id, first_name COLLATE $collation value
+				SELECT order_id id, CONCAT_WS (' ', first_name, last_name, company, address_1, address_2, city, state, postcode, country) COLLATE $collation value
 				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
-
-				UNION ALL
-				SELECT order_id id, last_name COLLATE $collation value
-				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
-
-				UNION ALL
-				SELECT order_id id, company COLLATE $collation value
-				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
-
-				UNION ALL
-				SELECT order_id id, address_1 COLLATE $collation value
-				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
-
-				UNION ALL
-				SELECT order_id id, address_2 COLLATE $collation value
-				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
-
-				UNION ALL
-				SELECT order_id id, city COLLATE $collation value
-				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
-
-				UNION ALL
-				SELECT order_id id, state COLLATE $collation value
-				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
-
-				UNION ALL
-				SELECT order_id id, postcode COLLATE $collation value
-				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
-
-				UNION ALL
-				SELECT order_id id, country COLLATE $collation value
-				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
+				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
 				SELECT order_id id, email COLLATE $collation value
 				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
+				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
 				SELECT order_id id, phone COLLATE $collation value
 				  FROM $addresses
-				 WHERE order_id >= @ifirst and order_id < @ilast
+				 WHERE order_id >= %d and order_id < %d
 				) a
-			WHERE value IS NOT NULL;
+			WHERE value IS NOT NULL
+			ORDER BY id;
 QUERY;
+		$query     = $wpdb->prepare( $query,
+			array(
+				$first,
+				$last,
+				$first,
+				$last,
+				$first,
+				$last,
+				$first,
+				$last,
+				$first,
+				$last,
+				$first,
+				$last,
+				$first,
+				$last
+			) );
 		$resultset = $wpdb->get_results( $query );
 		if ( false === $resultset ) {
 			$wpdb->bail( 'Order data retrieval failure' );
@@ -436,7 +403,7 @@ QUERY;
 
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
 			$query  = $wpdb->prepare(
-				"INSERT IGNORE INTO $tablename (id, trigram) VALUES (%d, %s);",
+				"INSERT IGNORE INTO $tablename (trigram, id) VALUES (%s, %d);",
 				$trigram );
 			$status = $wpdb->query( $query );
 
@@ -472,22 +439,6 @@ QUERY;
 	}
 
 	/**
-	 * Shutdown handler to kick a cronjob to continue background processing.
-	 * Use only when DISABLE_WP_CRON is set.
-	 *
-	 * @return void
-	 */
-	public function kick_cron() {
-		if ( wp_doing_cron() ) {
-			/* NEVER hit the cron endpoint when doing cron, or you'll break lots of things */
-			return;
-		}
-		$url = get_site_url( null, 'wp-cron.php' );
-		$req = new \WP_Http();
-		$res = $req->get( $url );
-	}
-
-	/**
 	 * @param array $trigrams
 	 * @param $wpdb
 	 *
@@ -498,7 +449,10 @@ QUERY;
 		if ( ! is_array( $trigrams ) || 0 === count( $trigrams ) ) {
 			return;
 		}
-		$query  = 'INSERT IGNORE INTO ' . $this->tablename . ' (id, trigram) VALUES ' . implode( ',', array_keys( $trigrams ) );
+		$query  = 'INSERT IGNORE INTO '
+		          . $this->tablename
+		          . ' (trigram, id) VALUES '
+		          . implode( ',', array_keys( $trigrams ) );
 		$result = $wpdb->query( $query );
 		if ( false === $result ) {
 			$wpdb->bail( 'inserts failure' );
