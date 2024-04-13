@@ -9,6 +9,7 @@
 .gitlab-ci.yml
 .travis.yml
 .DS_Store
+doc
 notes.md
 notes.MD
 CODE-OF-CONDUCT.md

@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.2.4
+Stable tag: 0.2.5
 Requires Plugins: woocommerce
 License: GPLv2
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup
@@ -33,13 +33,7 @@ See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/3
 
 = What's the fix? =
 
-Build a  lookup table, maintain it, and use it for the queries.
-
-= How can I make this even faster? =
-
-Add a covering index to WooCommerce's high-performance order store table called `wp_woocommerce_order_items`, like this.
-
-    `ALTER TABLE wp_woocommerce_order_items ADD KEY items_id (order_item_name(128), order_id);`
+Build a trigram lookup table, maintain it, and use it for the queries.
 
 = The lookup table seems to be out of date. I can't find recent orders. What do I do? =
 
@@ -63,6 +57,10 @@ Activating the plugin can take a few minutes, because it must generate the looku
 An earlier version of this plugin did not use trigram-related full text search, and therefore did not find things users expected to find. Please upgrade.
 
 == Changelog ==
+
+= 0.2.5 April 13, 2024 =
+
+Background loading. Correct handling of HPOS variant queries (from the dropdown).
 
 = 0.2.4 April 6, 2024 =
 
