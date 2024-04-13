@@ -97,15 +97,22 @@ QUERY;
 	}
 
 	/**
+	 *  Use ActionScheduler to kick off the first batch.
+	 *
 	 * @return void
 	 */
 	public function load_textdex() {
-		//hack hack
-		while( $this->load_next_batch() ) {
-		}
-		//hack hack $this->schedule_batch();
+		$this->schedule_batch();
 	}
 
+	/**
+	 * This is the job called by ActionScheduler.
+	 *
+	 * It loads a batch of orders,
+	 * then if there are more orders to do it kicks off another batch.
+	 *
+	 * @return void
+	 */
 	public function load_batch() {
 		$result = $this->load_next_batch();
 		if ( $result ) {
@@ -159,14 +166,13 @@ QUERY;
 			}
 		}
 		$this->do_insert_statement( $trigrams );
-		unset ( $resultset );
+		unset ( $resultset, $trigrams );
 		$wpdb->query( 'COMMIT;' );
 		$textdex_status['current'] = $last;
 		$this->update_option( $textdex_status );
 
 		return $textdex_status['current'] < $textdex_status['last'];
 	}
-
 
 	/**
 	 * @return bool true if the trigram index is ready to use.
