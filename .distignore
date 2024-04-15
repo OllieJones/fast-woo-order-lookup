@@ -9,7 +9,7 @@
 .gitlab-ci.yml
 .travis.yml
 .DS_Store
-doc
+/libraries/action-scheduler/doc
 notes.md
 notes.MD
 CODE-OF-CONDUCT.md
@@ -23,7 +23,6 @@ Gruntfile.js
 package.json
 package-lock.json
 phpunit.xml
-phpunit.xml.dist
 multisite.xml
 multisite.xml.dist
 phpcs.ruleset.xml

@@ -122,7 +122,6 @@ QUERY;
 
 	public function schedule_batch() {
 		if ( $this->have_more_batches() ) {
-			require_once( plugin_dir_path( __FILE__ ) . '/../libraries/action-scheduler/action-scheduler.php' );
 			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup', false, 10 );
 		}
 	}
