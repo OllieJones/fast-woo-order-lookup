@@ -50,7 +50,7 @@ class Textdex {
 		$textdex_status = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
-			$table  = <<<TABLE
+			$table = <<<TABLE
 CREATE TABLE $tablename (
 	trigram CHAR(3) NOT NULL,
     id BIGINT NOT NULL,
@@ -58,6 +58,7 @@ CREATE TABLE $tablename (
 	INDEX id (id)
 );
 TABLE;
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$result = $wpdb->query( $table );
 			if ( false === $result ) {
 				if ( ! str_contains( $wpdb->last_error, 'already exists' ) ) {
@@ -81,6 +82,7 @@ TABLE;
 			        FROM $orderaddr 
             ) c ON 1=1
 QUERY;
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$res   = $wpdb->get_results( $query );
 			$res   = $res[0];
 			$first = ( null !== $res->minmeta ) ? $res->minmeta : 0;
@@ -92,6 +94,7 @@ QUERY;
 
 			$textdex_status['last']    = $last + 1;
 			$textdex_status['current'] = $first + 0;
+			$textdex_status['first']   = $first + 0;
 			$this->update_option( $textdex_status );
 		}
 	}
@@ -137,6 +140,22 @@ QUERY;
 		return ( $textdex_status['current'] < $textdex_status['last'] );
 	}
 
+	public function fraction_complete() {
+
+		$textdex_status = $this->get_option();
+
+		$result = 1.0 - ( ( 0.0 + $textdex_status['last'] - $textdex_status['current'] )
+		                  / ( 0.0 + $textdex_status['first'] ) );
+		if ( $result < 0.0 ) {
+			$result = 0.0;
+		}
+		if ( $result > 1.0 ) {
+			$result = 1.0;
+		}
+
+		return $result;
+	}
+
 	/**
 	 * Load the next batch of orders into the trigram table.
 	 *
@@ -153,12 +172,13 @@ QUERY;
 		set_time_limit( 300 );
 		$trigram_count = $textdex_status['trigram_batch'];
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( 'BEGIN;' );
 
 		$resultset = $this->get_order_metadata( $first, $last );
 		$trigrams  = array();
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
-			$trigrams[ $wpdb->prepare( '(%s,%d)', $trigram ) ] = 1;
+			$trigrams[ $wpdb->prepare( '(%s,%d)', $trigram[0], $trigram[1] ) ] = 1;
 			if ( count( $trigrams ) >= $trigram_count ) {
 				$this->do_insert_statement( $trigrams );
 				$trigrams = array();
@@ -166,6 +186,7 @@ QUERY;
 		}
 		$this->do_insert_statement( $trigrams );
 		unset ( $resultset, $trigrams );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( 'COMMIT;' );
 		$textdex_status['current'] = $last;
 		$this->update_option( $textdex_status );
@@ -266,7 +287,8 @@ QUERY;
 	 */
 	public function deactivate() {
 		global $wpdb;
-		$wpdb->query( 'DROP TABLE ' . $this->tablename );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( "DROP TABLE {$this->tablename};" );
 		delete_option( $this->option_name );
 
 	}
@@ -286,11 +308,17 @@ QUERY;
 
 		if ( $this->is_ready() ) {
 			foreach ( $order_ids as $order_id ) {
+				/* Do this all at once to avoid autocommit overhead. */
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->query( 'BEGIN;' );
 				/* Get rid of old metadata */
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE id = %d', $order_id ) );
 				/* Retrieve and add the new metadata */
 				$resultset = $this->get_order_metadata( $order_id );
 				$this->insert_trigrams( $resultset );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->query( 'COMMIT;' );
 			}
 		}
 		$textdex_status = $this->get_option();
@@ -325,7 +353,7 @@ QUERY;
 		$collation  = $wpdb->collate;
 
 
-		$query     = <<<QUERY
+		$query = <<<QUERY
 				SELECT id, value
 				FROM (
 				SELECT post_id id, meta_value COLLATE $collation value
@@ -367,7 +395,8 @@ QUERY;
 			WHERE value IS NOT NULL
 			ORDER BY id;
 QUERY;
-		$query     = $wpdb->prepare( $query,
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$query = $wpdb->prepare( $query,
 			array(
 				$first,
 				$last,
@@ -384,12 +413,13 @@ QUERY;
 				$first,
 				$last
 			) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$resultset = $wpdb->get_results( $query );
 		if ( false === $resultset ) {
 			$wpdb->bail( 'Order data retrieval failure' );
 		}
 
-		error_log ("ifirst: $first  ilast: $last  rows: " . count($resultset));
+		error_log( "ifirst: $first  ilast: $last  rows: " . count( $resultset ) );
 
 
 		return $resultset;
@@ -407,9 +437,9 @@ QUERY;
 		$tablename = $this->tablename;
 
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
-			$query  = $wpdb->prepare(
-				"INSERT IGNORE INTO $tablename (trigram, id) VALUES (%s, %d);",
-				$trigram );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$query = $wpdb->prepare( "INSERT IGNORE INTO $tablename (trigram, id) VALUES (%s, %d);", $trigram[0], $trigram[1] );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$status = $wpdb->query( $query );
 
 			if ( false === $status ) {
@@ -454,10 +484,9 @@ QUERY;
 		if ( ! is_array( $trigrams ) || 0 === count( $trigrams ) ) {
 			return;
 		}
-		$query  = 'INSERT IGNORE INTO '
-		          . $this->tablename
-		          . ' (trigram, id) VALUES '
-		          . implode( ',', array_keys( $trigrams ) );
+		$query = "INSERT IGNORE INTO {$this->tablename} (trigram, id) VALUES "
+		         . implode( ',', array_keys( $trigrams ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $query );
 		if ( false === $result ) {
 			$wpdb->bail( 'inserts failure' );

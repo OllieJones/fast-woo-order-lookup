@@ -116,16 +116,24 @@ class FastWooOrderLookup {
 		$this->textdex->activate();
 		$this->textdex->load_textdex();
 
+		add_action( 'admin_notices', array( $this, 'show_status' ), 10, 0 );
 		add_action( 'shutdown', array( $this, 'update_textdex' ), 1, 0 );
 	}
 
-	/**
-	 * Shutdown action handler to continue background (textdex) load.
-	 *
-	 * @return void
-	 */
-	public static function background_textdex() {
-
+	public function show_status() {
+		if ( ! $this->textdex->is_ready() ) {
+			$percent = number_format( 100 * $this->textdex->fraction_complete(), 0 ) . '%';
+			/* translators: 1: percent complete, including the percent sign */
+			$msg = __( '%1$s complete.', 'fast-woo-order-lookup' );
+			$msg = sprintf( $msg, $percent );
+			?>
+            <div class="notice notice-info is-dismissible">
+                <p>
+					<?php esc_html_e( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' ); ?>
+					<?php echo esc_html( $msg ); ?>
+                </p></div>
+			<?php
+		}
 	}
 
 	/**
@@ -284,14 +292,13 @@ class FastWooOrderLookup {
 
 		return $query;
 	}
-
 }
 
 // Plugin name
-const FAST_WOO_ORDER_LOOKUP_NAME = 'Fast Woo Order Lookup';
+const FAST_WOO_ORDER_LOOKUP_NAME        = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION = '0.1.4';
+const FAST_WOO_ORDER_LOOKUP_VERSION     = '0.1.4';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE = __FILE__;
@@ -338,7 +345,6 @@ add_action( 'update_post_meta',
 /* ActionScheduler action for loading textdex. */
 add_action( 'fast_woo_order_lookup_textdex_action',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'textdex_batch_action' ) );
-
 
 function activate() {
 	register_uninstall_hook( __FILE__, 'Fast_Woo_Order_Lookup\uninstall' );
