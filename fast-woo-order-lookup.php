@@ -11,7 +11,7 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       0.2.5
+ * Version:       0.2.6
  * Author:        OllieJones
  * Author URI:    https://github.com/OllieJones
  * Text Domain:   fast-woo-order-lookup
@@ -122,12 +122,13 @@ class FastWooOrderLookup {
 
 	public function show_status() {
 		if ( ! $this->textdex->is_ready() ) {
-			$percent = number_format( 100 * $this->textdex->fraction_complete(), 0 ) . '%';
-			/* translators: 1: percent complete, including the percent sign */
-			$msg = __( '%1$s complete.', 'fast-woo-order-lookup' );
+			load_plugin_textdomain( 'fast-woo-order-lookup', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+			$percent = number_format( 100 * $this->textdex->fraction_complete(), 0 );
+			/* translators: 1: percent complete integer */
+			$msg = __( '%1$d%% complete.', 'fast-woo-order-lookup' );
 			$msg = sprintf( $msg, $percent );
 			?>
-            <div class="notice notice-info is-dismissible">
+            <div class="notice notice-info">
                 <p>
 					<?php esc_html_e( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' ); ?>
 					<?php echo esc_html( $msg ); ?>

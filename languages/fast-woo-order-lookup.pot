@@ -1,0 +1,44 @@
+# Copyright (C) 2024 OllieJones
+# This file is distributed under the GPLv2.
+msgid ""
+msgstr ""
+"Project-Id-Version: Fast Woo Order Lookup 0.2.6\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/fast-woo-order-lookup\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2024-04-15T12:09:37-04:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.9.0\n"
+"X-Domain: fast-woo-order-lookup\n"
+
+#. Plugin Name of the plugin
+msgid "Fast Woo Order Lookup"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/"
+msgstr ""
+
+#. Description of the plugin
+msgid "Look up orders faster in large WooCommerce stores with many orders."
+msgstr ""
+
+#. Author of the plugin
+msgid "OllieJones"
+msgstr ""
+
+#. Author URI of the plugin
+msgid "https://github.com/OllieJones"
+msgstr ""
+
+#. translators: 1: percent complete integer
+#: fast-woo-order-lookup.php:128
+msgid "%1$d%% complete."
+msgstr ""
+
+#: fast-woo-order-lookup.php:133
+msgid "Fast Woo Order Lookup indexing still in progress."
+msgstr ""
