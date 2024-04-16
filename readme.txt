@@ -1,4 +1,4 @@
-=== Fast Results ===
+=== Fast Woo Order Lookup ===
 Author URI: https://github.com/OllieJones
 Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 Donate link: 
@@ -35,6 +35,24 @@ See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/3
 = What's the fix? =
 
 Build a trigram lookup table, maintain it, and use it for the queries.
+
+= How much space does the trigram lookup table take? =
+
+It takes about 5KiB per order, as MariaDB / MySQL database storage, counting both data and indexes. So, if your site has a million orders, the table will take something like 5GiB.
+
+= How long does it take to generate trigram lookup table? =
+
+When you activate the plugin, it starts generating the table in the background. Everything continues as normal while the plugin is generating the table.
+
+Generating the table seems to take about ten seconds (in the background) for every thousand orders.
+
+= Does it work with High Performance Order Storage (HPOS)? =
+
+**Yes**.
+
+= Does it work with pre-HPOS order storage? =
+
+**Yes**.
 
 = The lookup table seems to be out of date. I can't find recent orders. What do I do? =
 
