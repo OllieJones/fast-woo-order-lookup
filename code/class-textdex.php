@@ -21,9 +21,11 @@ class Textdex {
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
 
+	private $alias_chars = 'abcdefghijklmnopqrstuvwxyz';
+
 	public function __construct() {
 		global $wpdb;
-		$this->tablename            = $wpdb->prefix . 'fast_woo_textdex';
+		$this->tablename            = $wpdb->prefix . 'fwol';
 		$this->meta_keys_to_monitor = array(
 			'_billing_address_index'  => 1,
 			'_shipping_address_index' => 1,
@@ -50,13 +52,15 @@ class Textdex {
 		$textdex_status = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
+			$collation = $wpdb->collate;
 			$table = <<<TABLE
 CREATE TABLE $tablename (
-	trigram CHAR(3) NOT NULL,
-    id BIGINT NOT NULL,
-	PRIMARY KEY (trigram, id),
-	INDEX id (id)
-);
+	t CHAR(3) NOT NULL COLLATE $collation,
+    i BIGINT NOT NULL,
+	PRIMARY KEY (t, i),
+	KEY i (i)
+)
+COMMENT 'Fast Woo Order Lookup plugin trigram table, created on activation, dropped on deactivation.';
 TABLE;
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$result = $wpdb->query( $table );
@@ -161,7 +165,7 @@ QUERY;
 	 *
 	 * @return bool true if there are still more batches to process.
 	 */
-	public function load_next_batch() {
+	private function load_next_batch() {
 		$textdex_status = $this->get_option();
 		if ( $textdex_status['current'] >= $textdex_status['last'] ) {
 			return false;
@@ -206,7 +210,7 @@ QUERY;
 	}
 
 
-	public function get_trigrams( $resultset ) {
+	private function get_trigrams( $resultset ) {
 
 		if ( is_string( $resultset ) ) {
 			$resultset = array( (object) array( 'id' => 1, 'value' => $resultset ) );
@@ -248,6 +252,9 @@ QUERY;
 	 * @param string $value Search term.
 	 *
 	 * @return string SQL statement like SELECT id ...
+	 *
+	 * @note The phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared item is necessary because
+	 *        the %t (table / column name) placeholder is a recent addition to $wpdb->prepare().
 	 */
 	public function trigram_clause( $value ) {
 		global $wpdb;
@@ -260,7 +267,7 @@ QUERY;
 			 * higher level than the `query` filter and
 			 * so is not appropriate here. Hence esc_sql().
 			 */
-			return 'SELECT DISTINCT id FROM ' . $wpdb->prefix . 'fast_woo_textdex WHERE trigram LIKE ' . "'" . esc_sql( $value ) . "%'";
+			return 'SELECT DISTINCT i FROM ' . $this->tablename . ' WHERE t LIKE ' . "'" . esc_sql( $value ) . "%'";
 		}
 		/* Normal search terms */
 		$trigrams = array();
@@ -269,15 +276,35 @@ QUERY;
 		}
 
 		if ( 1 === count( $trigrams ) ) {
-			return $wpdb->prepare( 'SELECT id FROM ' . $wpdb->prefix . 'fast_woo_textdex WHERE trigram = %s', $trigrams[0] );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			return $wpdb->prepare( 'SELECT i FROM ' . $this->tablename . ' WHERE t = %s', $trigrams[0] );
 		}
-		foreach ( $trigrams as $trigram ) {
-			$inlist[] = $wpdb->prepare( '%s', $trigram );
-		}
-		$clause = 'SELECT id FROM ' . $wpdb->prefix . 'fast_woo_textdex WHERE trigram IN (' . implode( ',', $inlist ) . ') ';
-		$clause .= $wpdb->prepare( 'GROUP BY id HAVING COUNT(*) = %d', count( $trigrams ) );
+		/* We make this sort of query here.
+		 *
+		 * SELECT a.id FROM
+		 *	(SELECT id FROM t2 WHERE trigram = 'Oli') a
+		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'liv') b ON a.id = b.id
+		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'ive') c ON a.id = c.id
+		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'ver') d ON a.id = d.id
+		 */
+		$alias_num = 0;
 
-		return $clause;
+		$query = 'SELECT a.i FROM ';
+		$query .= '(';
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$query .= $wpdb->prepare( 'SELECT i FROM ' . $this->tablename . ' WHERE t = %s', array_pop( $trigrams ) );
+		$query .= ') a ';
+
+
+		while( count( $trigrams ) > 0 ) {
+			$alias_num ++;
+			$query .= 'JOIN (';
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$query .= $wpdb->prepare( 'SELECT i FROM ' . $this->tablename . ' WHERE t = %s', array_pop( $trigrams ) );
+			$query .= ') ' . $this->alias( $alias_num ) . ' ON a.i=' . $this->alias( $alias_num ) . '.i ';
+		}
+
+		return $query;
 	}
 
 	/**
@@ -313,7 +340,7 @@ QUERY;
 				$wpdb->query( 'BEGIN;' );
 				/* Get rid of old metadata */
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE id = %d', $order_id ) );
+				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE i = %d', $order_id ) );
 				/* Retrieve and add the new metadata */
 				$resultset = $this->get_order_metadata( $order_id );
 				$this->insert_trigrams( $resultset );
@@ -432,13 +459,13 @@ QUERY;
 	 *
 	 * @return void
 	 */
-	public function insert_trigrams( $resultset ) {
+	private function insert_trigrams( $resultset ) {
 		global $wpdb;
 		$tablename = $this->tablename;
 
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$query = $wpdb->prepare( "INSERT IGNORE INTO $tablename (trigram, id) VALUES (%s, %d);", $trigram[0], $trigram[1] );
+			$query = $wpdb->prepare( "INSERT IGNORE INTO $tablename (t, i) VALUES (%s, %d);", $trigram[0], $trigram[1] );
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$status = $wpdb->query( $query );
 
@@ -451,7 +478,7 @@ QUERY;
 	/**
 	 * @return false|mixed|null
 	 */
-	public function get_option() {
+	private function get_option() {
 		return get_option( $this->option_name,
 			array(
 				'new'           => true,
@@ -467,7 +494,7 @@ QUERY;
 	 *
 	 * @return void
 	 */
-	public function update_option(
+	private function update_option(
 		$textdex_status
 	) {
 		update_option( $this->option_name, $textdex_status, false );
@@ -479,12 +506,12 @@ QUERY;
 	 *
 	 * @return void
 	 */
-	public function do_insert_statement( $trigrams ) {
+	private function do_insert_statement( $trigrams ) {
 		global $wpdb;
 		if ( ! is_array( $trigrams ) || 0 === count( $trigrams ) ) {
 			return;
 		}
-		$query = "INSERT IGNORE INTO {$this->tablename} (trigram, id) VALUES "
+		$query = "INSERT IGNORE INTO {$this->tablename} (t, i) VALUES "
 		         . implode( ',', array_keys( $trigrams ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $query );
@@ -493,6 +520,21 @@ QUERY;
 		}
 		$this->attempted_inserts += count( $trigrams );
 		$this->actual_inserts    += $result;
+	}
+
+	/**
+	 * Get a serial alias name a,b,c,d, a0, a1,  etc.
+	 *
+	 * @param int $n Alias number.
+	 *
+	 * @return string Short alias name.
+	 */
+	private function alias( $n ) {
+		if ( $n < strlen( $this->alias_chars ) ) {
+			return substr( $this->alias_chars, $n, 1 );
+		}
+
+		return 'a' . ( $n - strlen( $this->alias_chars ) );
 	}
 }
 

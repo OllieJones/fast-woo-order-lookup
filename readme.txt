@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.2.6
+Stable tag: 0.3.0
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -71,6 +71,10 @@ Generating the table seems to take about ten seconds (in the background) for eve
 An earlier version of this plugin did not use trigram-related full text search, and therefore did not find things users expected to find. Please upgrade.
 
 == Changelog ==
+
+= 0.3.0 April 25, 2024 =
+
+Use JOINs rather than IN to get better performance. Shorten the table and column names.
 
 = 0.2.6 April 15, 2024 =
 
