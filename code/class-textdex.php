@@ -4,6 +4,8 @@
 
 namespace Fast_Woo_Order_Lookup;
 
+use stdClass;
+
 class Textdex {
 
 	private $tablename;
@@ -16,7 +18,7 @@ class Textdex {
 	/** @var int The maximum number of tuples per insert */
 	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 100;
+	private $batch_size = 1000;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
@@ -129,7 +131,7 @@ QUERY;
 
 	public function schedule_batch() {
 		if ( $this->have_more_batches() ) {
-			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup', false, 10 );
+			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup' );
 		}
 	}
 
@@ -258,7 +260,6 @@ QUERY;
 	 */
 	public function trigram_clause( $value ) {
 		global $wpdb;
-		$inlist = array();
 
 		/* Short search terms */
 		if ( mb_strlen( $value ) < 3 ) {
@@ -315,7 +316,7 @@ QUERY;
 	public function deactivate() {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
-		$wpdb->query( "DROP TABLE {$this->tablename};" );
+		$wpdb->query( "DROP TABLE $this->tablename;" );
 		delete_option( $this->option_name );
 
 	}
@@ -364,7 +365,7 @@ QUERY;
 	 * @param int $first First order ID to get
 	 * @param int $last Last + 1 order ID to get. Default: Just get one.
 	 *
-	 * @return array|false|mixed|object|\stdClass[]|null
+	 * @return array|false|mixed|object|stdClass[]|null
 	 */
 	private function get_order_metadata( $first, $last = null ) {
 		$first = $first + 0;
@@ -502,7 +503,6 @@ QUERY;
 
 	/**
 	 * @param array $trigrams
-	 * @param $wpdb
 	 *
 	 * @return void
 	 */
@@ -511,7 +511,7 @@ QUERY;
 		if ( ! is_array( $trigrams ) || 0 === count( $trigrams ) ) {
 			return;
 		}
-		$query = "INSERT IGNORE INTO {$this->tablename} (t, i) VALUES "
+		$query = "INSERT IGNORE INTO $this->tablename (t, i) VALUES "
 		         . implode( ',', array_keys( $trigrams ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $query );

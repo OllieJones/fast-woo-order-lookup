@@ -90,7 +90,7 @@ Ingest wp_wc_order_addresses info when creating trigram table, and handle pre-HP
 
 = 0.2.2 April 1, 2024 =
 
-Do trigram inserts in batches.
+Perform trigram inserts in batches.
 
 = 0.2.1 March 26, 2024 =
 
@@ -98,7 +98,7 @@ Keep up with changes to orders.
 
 = 0.1.4 March 23, 2024
 
-Use trigrams, support both trad and HPOS orders.
+Use trigrams, support both traditional and HPOS orders.
 
 = 0.1.3 March 21, 2024
 
@@ -109,4 +109,5 @@ Build a text index table and use it.
 Add support for speeding Subscriptions searches.
 
 = 0.1.1 November 19, 2023
+
 Birthday of Fast Woo Order Lookup. And, the birthday (in 1988) of the author's daughter Catharine.

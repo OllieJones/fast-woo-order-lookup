@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnusedParameterInspection */
 
 /**
  * Fast Woo Order Lookup
@@ -103,11 +103,11 @@ class FastWooOrderLookup {
 	 */
 	private function __construct() {
 		/* Query manipulation */
-		add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ), 10, 1 );
-		add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ), 10, 1 );
+		add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ) );
+		add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ) );
 		add_filter( 'woocommerce_shop_order_search_results', array( $this, 'filter_search_results' ), 10, 3 );
 		add_filter( 'woocommerce_shop_subscription_search_results', array( $this, 'filter_search_results' ), 10, 3 );
-		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ), 10, 1 );
+		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ) );
 		add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
 
 		$dir = plugin_dir_path( __FILE__ );
@@ -123,15 +123,27 @@ class FastWooOrderLookup {
 	public function show_status() {
 		if ( ! $this->textdex->is_ready() ) {
 			load_plugin_textdomain( 'fast-woo-order-lookup', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-			$percent = number_format( 100 * $this->textdex->fraction_complete(), 0 );
-			/* translators: 1: percent complete integer */
-			$msg = __( '%1$d%% complete.', 'fast-woo-order-lookup' );
-			$msg = sprintf( $msg, $percent );
+			$sa1     = __( 'See the', 'fast-woo-order-lookup' );
+			$sa2     = __( 'Scheduled Actions status page', 'fast-woo-order-lookup' );
+			$sa3     = __( 'for details.', 'fast-woo-order-lookup' );
+			$percent = number_format( 100 * $this->textdex->fraction_complete() );
+			if ( '0' === $percent ) {
+				$ms1 = __( 'Fast Woo Order Lookup indexing begins soon.', 'fast-woo-order-lookup' );
+				$ms2 = '';
+			} else {
+				$ms1 = __( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' );
+				/* translators: 1: percent complete integer */
+				$ms2 = __( '%1$d%% complete.', 'fast-woo-order-lookup' );
+				$ms2 = sprintf( $ms2, $percent );
+			}
 			?>
             <div class="notice notice-info">
                 <p>
-					<?php esc_html_e( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' ); ?>
-					<?php echo esc_html( $msg ); ?>
+					<?php echo esc_html( $ms1 ); ?>
+					<?php echo esc_html( $ms2 ); ?>
+					<?php echo esc_html( $sa1 ); ?>
+                    <a href="/wp-admin/admin.php?page=wc-status&tab=action-scheduler&s=fast_woo_order_lookup_textdex_action"><?php echo esc_html( $sa2 ); ?></a>
+					<?php echo esc_html( $sa3 ); ?>
                 </p></div>
 			<?php
 		}
@@ -162,7 +174,7 @@ class FastWooOrderLookup {
 		}
 		/* Hook to mung the queries. */
 		$this->filtering = true;
-		add_filter( 'query', array( $this, 'standard_query' ), 1, 1 );
+		add_filter( 'query', array( $this, 'standard_query' ), 1 );
 
 		return $search_fields;
 	}
@@ -240,7 +252,7 @@ class FastWooOrderLookup {
 
 			/* Hook to mung the queries. */
 			$this->filtering = true;
-			add_filter( 'query', array( $this, 'hpos_query' ), 1, 1 );
+			add_filter( 'query', array( $this, 'hpos_query' ), 1 );
 		}
 
 		return $args;
@@ -333,13 +345,13 @@ add_action( 'woocommerce_order_object_updated_props',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_object_updated_props' ), 10, 2 );
 /* Hook changes to order status. */
 add_action( 'woocommerce_delete_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
 add_action( 'woocommerce_trash_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
 add_action( 'woocommerce_untrash_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
 add_action( 'woocommerce_cancelled_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
 add_action( 'update_post_meta',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'update_post_meta' ), 10, 4 );
 
