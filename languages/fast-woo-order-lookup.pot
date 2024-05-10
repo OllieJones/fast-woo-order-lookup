@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2.
 msgid ""
 msgstr ""
-"Project-Id-Version: Fast Woo Order Lookup 0.2.6\n"
+"Project-Id-Version: Fast Woo Order Lookup 0.4.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/fast-woo-order-lookup\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-04-15T12:09:37-04:00\n"
+"POT-Creation-Date: 2024-05-10T16:07:59-04:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: fast-woo-order-lookup\n"
@@ -34,11 +34,27 @@ msgstr ""
 msgid "https://github.com/OllieJones"
 msgstr ""
 
-#. translators: 1: percent complete integer
-#: fast-woo-order-lookup.php:128
-msgid "%1$d%% complete."
+#: fast-woo-order-lookup.php:127
+msgid "See the"
 msgstr ""
 
-#: fast-woo-order-lookup.php:133
+#: fast-woo-order-lookup.php:128
+msgid "Scheduled Actions status page"
+msgstr ""
+
+#: fast-woo-order-lookup.php:129
+msgid "for details."
+msgstr ""
+
+#: fast-woo-order-lookup.php:132
+msgid "Fast Woo Order Lookup indexing begins soon."
+msgstr ""
+
+#: fast-woo-order-lookup.php:135
 msgid "Fast Woo Order Lookup indexing still in progress."
+msgstr ""
+
+#. translators: 1: percent complete integer
+#: fast-woo-order-lookup.php:137
+msgid "%1$d%% complete."
 msgstr ""

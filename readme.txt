@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5
 Requires PHP: 5.6
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -23,6 +23,8 @@ WooCommerce's Order and Subscription pages allow store owners to search for orde
 Upon activation this plugin runs a background process to create a special-purpose index table, a table of trigrams, to speed up that search. Then it uses those trigrams to search for orders.
 
 The downside: the trigram table takes database space and takes time to generate.
+
+The orders page itself contains a very slow query (to be fixed in Woocommerce 9.0.0) to look up meta_keys. This fixes that query's performance too.
 
 Thanks to Jetbrains for the use of their software development tools, especially [PhpStorm](https://www.jetbrains.com/phpstorm/). It's hard to imagine how a plugin like this one could be developed without PhpStorm's tools for exploring epic code bases like WordPress's.
 
@@ -71,6 +73,10 @@ Generating the table seems to take about ten seconds (in the background) for eve
 An earlier version of this plugin did not use trigram-related full text search, and therefore did not find things users expected to find. Please upgrade.
 
 == Changelog ==
+
+= 0.4.0 May 10, 2024 =
+
+Patch the query to look up distinct public meta_key values.
 
 = 0.3.0 April 25, 2024 =
 
