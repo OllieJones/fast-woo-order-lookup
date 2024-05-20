@@ -11,7 +11,8 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       0.2.6
+ * Version:       0.2.7
+ * Requires at least: 6.2
  * Author:        OllieJones
  * Author URI:    https://github.com/OllieJones
  * Text Domain:   fast-woo-order-lookup
@@ -80,7 +81,7 @@ class FastWooOrderLookup {
 	 */
 	public static function woocommerce_order_data_store( $store ) {
 		if ( 'WC_Order_Data_Store_CPT' === $store || 'WCS_Subscription_Data_Store_CPT' === $store ) {
-			$instance = self::getInstance();
+            self::getInstance();
 		}
 
 		return $store;

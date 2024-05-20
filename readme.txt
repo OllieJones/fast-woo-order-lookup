@@ -4,10 +4,10 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 Donate link: 
 Contributors:  OllieJones
 Tags: woocommerce, search, orders, database, performance
-Requires at least: 5.9
-Tested up to: 6.5
+Requires at least: 6.2
+Tested up to: 6.5.3
 Requires PHP: 5.6
-Stable tag: 0.2.6
+Stable tag: 0.2.7
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -59,6 +59,10 @@ Generating the table seems to take about ten seconds (in the background) for eve
 1. Let the author know by creating an issue at https://github.com/OllieJones/fast-woo-order-lookup/issues
 2. Deactivate, then activate the plugin. This rebuilds the lookup table.
 
+= Can I use this with a version of WordPress before 6.2? =
+
+**No**. The SQL safety standards of the plugin review team require a feature -- the %i placeholder in $wpdb->prepare() -- that was introduced in 6.2.
+
 == Installation ==
 
 1. Go to `Plugins` in the Admin menu
@@ -94,7 +98,7 @@ Keep up with changes to orders.
 
 = 0.1.4 March 23, 2024
 
-Use trigrams, support both trad and HPOS orders.
+Use trigrams, support both traditional and HPOS orders.
 
 = 0.1.3 March 21, 2024
 
@@ -105,4 +109,5 @@ Build a text index table and use it.
 Add support for speeding Subscriptions searches.
 
 = 0.1.1 November 19, 2023
+
 Birthday of Fast Woo Order Lookup. And, the birthday (in 1988) of the author's daughter Catharine.

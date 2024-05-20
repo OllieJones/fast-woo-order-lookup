@@ -4,6 +4,8 @@
 
 namespace Fast_Woo_Order_Lookup;
 
+use stdClass;
+
 class Textdex {
 
 	private $tablename;
@@ -16,7 +18,7 @@ class Textdex {
 	/** @var int The maximum number of tuples per insert */
 	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 100;
+	private $batch_size = 500;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
@@ -42,24 +44,21 @@ class Textdex {
 	 */
 	public function activate() {
 		global $wpdb;
-		$tablename  = $this->tablename;
-		$postmeta   = $wpdb->postmeta;
-		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
-		$orderaddr  = $wpdb->prefix . 'wc_order_addresses';
 
 		$textdex_status = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
-			$table = <<<TABLE
-CREATE TABLE $tablename (
+			$query = <<<TABLE
+CREATE TABLE %i (
 	trigram CHAR(3) NOT NULL,
     id BIGINT NOT NULL,
 	PRIMARY KEY (trigram, id),
 	INDEX id (id)
 );
 TABLE;
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
-			$result = $wpdb->query( $table );
+			$query = $wpdb->prepare( $query, $this->tablename );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$result = $wpdb->query( $query );
 			if ( false === $result ) {
 				if ( ! str_contains( $wpdb->last_error, 'already exists' ) ) {
 					$wpdb->bail( 'Table creation failure ' );
@@ -70,20 +69,22 @@ TABLE;
 			SELECT  *
 			  FROM (
 			    	SELECT MAX(post_id) maxmeta, MIN(post_id) minmeta
-			     	  FROM $postmeta
+			     	  FROM %i
 			         WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone') 
 			        ) a
 			  JOIN (
  			      SELECT MAX(order_id) maxhpos, MIN(order_id) minhpos
-			        FROM $ordersmeta WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
+			        FROM %i WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
 			      ) b ON 1=1
         	  JOIN (
  			      SELECT MAX(order_id) maxaddr, MIN(order_id) minaddr
-			        FROM $orderaddr 
+			        FROM %i 
             ) c ON 1=1
 QUERY;
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$res   = $wpdb->get_results( $query );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$res   = $wpdb->get_results(
+				$wpdb->prepare( $query,
+				$wpdb->postmeta, $wpdb->prefix . 'wc_orders_meta', $wpdb->prefix . 'wc_order_addresses' ) );
 			$res   = $res[0];
 			$first = ( null !== $res->minmeta ) ? $res->minmeta : 0;
 			$first = ( null !== $res->minhpos && $res->minhpos < $first ) ? $res->minhpos : $first;
@@ -169,7 +170,6 @@ QUERY;
 		$first = $textdex_status['current'];
 		$last  = min( $first + $textdex_status['batch'], $textdex_status['last'] );
 
-		set_time_limit( 300 );
 		$trigram_count = $textdex_status['trigram_batch'];
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -260,7 +260,7 @@ QUERY;
 			 * higher level than the `query` filter and
 			 * so is not appropriate here. Hence esc_sql().
 			 */
-			return 'SELECT DISTINCT id FROM ' . $wpdb->prefix . 'fast_woo_textdex WHERE trigram LIKE ' . "'" . esc_sql( $value ) . "%'";
+			return $wpdb->prepare( 'SELECT DISTINCT id FROM %i WHERE trigram LIKE ' . "'" . esc_sql( $value ) . "%'", $wpdb->prefix . 'fast_woo_textdex' );
 		}
 		/* Normal search terms */
 		$trigrams = array();
@@ -269,12 +269,13 @@ QUERY;
 		}
 
 		if ( 1 === count( $trigrams ) ) {
-			return $wpdb->prepare( 'SELECT id FROM ' . $wpdb->prefix . 'fast_woo_textdex WHERE trigram = %s', $trigrams[0] );
+			return $wpdb->prepare( 'SELECT id FROM %i WHERE trigram = %s', $wpdb->prefix . 'fast_woo_textdex', $trigrams[0] );
 		}
 		foreach ( $trigrams as $trigram ) {
 			$inlist[] = $wpdb->prepare( '%s', $trigram );
 		}
-		$clause = 'SELECT id FROM ' . $wpdb->prefix . 'fast_woo_textdex WHERE trigram IN (' . implode( ',', $inlist ) . ') ';
+		$clause = $wpdb->prepare( 'SELECT id FROM %i WHERE trigram IN (' , $wpdb->prefix . 'fast_woo_textdex');
+		$clause .= implode( ',', $inlist ) . ') ';
 		$clause .= $wpdb->prepare( 'GROUP BY id HAVING COUNT(*) = %d', count( $trigrams ) );
 
 		return $clause;
@@ -287,8 +288,8 @@ QUERY;
 	 */
 	public function deactivate() {
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
-		$wpdb->query( "DROP TABLE {$this->tablename};" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE %i', $this->tablename ) );
 		delete_option( $this->option_name );
 
 	}
@@ -304,7 +305,6 @@ QUERY;
 	 */
 	public function update( array $order_ids ) {
 		global $wpdb;
-		$tablename = $this->tablename;
 
 		if ( $this->is_ready() ) {
 			foreach ( $order_ids as $order_id ) {
@@ -312,8 +312,8 @@ QUERY;
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->query( 'BEGIN;' );
 				/* Get rid of old metadata */
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE id = %d', $order_id ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id = %d', $this->tablename, $order_id ) );
 				/* Retrieve and add the new metadata */
 				$resultset = $this->get_order_metadata( $order_id );
 				$this->insert_trigrams( $resultset );
@@ -337,90 +337,72 @@ QUERY;
 	 * @param int $first First order ID to get
 	 * @param int $last Last + 1 order ID to get. Default: Just get one.
 	 *
-	 * @return array|false|mixed|object|\stdClass[]|null
+	 * @return array|false|mixed|object|stdClass[]|null
 	 */
 	private function get_order_metadata( $first, $last = null ) {
-		$first = $first + 0;
+		$first =    (int) $first;
 		if ( null === $last ) {
 			$last = $first + 1;
 		}
 		global $wpdb;
-		$postmeta   = $wpdb->postmeta;
-		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
-		$orders     = $wpdb->prefix . 'wc_orders';
-		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
-		$addresses  = $wpdb->prefix . 'wc_order_addresses';
-		$collation  = $wpdb->collate;
-
 
 		$query = <<<QUERY
 				SELECT id, value
 				FROM (
-				SELECT post_id id, meta_value COLLATE $collation value
-				  FROM $postmeta
+				SELECT post_id id, meta_value COLLATE %i value
+				  FROM %i
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
 				   AND post_id >= %d and post_id < %d
 
 				UNION ALL
-				SELECT order_id id, meta_value COLLATE $collation value
-				  FROM $ordersmeta
+				SELECT order_id id, meta_value COLLATE %i value
+				  FROM %i
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
 				   AND order_id >= %d and order_id < %d
 
 				UNION ALL
-				SELECT order_id id, order_item_name COLLATE $collation value
-				  FROM $orderitems
+				SELECT order_id id, order_item_name COLLATE %i value
+				  FROM %i
 				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
-				SELECT id, billing_email COLLATE $collation value
-				  FROM $orders
+				SELECT id, billing_email COLLATE %i value
+				  FROM %i
 				 WHERE id >= %d and id < %d
 				
 				UNION ALL
-				SELECT order_id id, CONCAT_WS (' ', first_name, last_name, company, address_1, address_2, city, state, postcode, country) COLLATE $collation value
-				  FROM $addresses
+				SELECT order_id id, CONCAT_WS (' ', first_name, last_name, company, address_1, address_2, city, state, postcode, country) COLLATE %i value
+				  FROM %i
 				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
-				SELECT order_id id, email COLLATE $collation value
-				  FROM $addresses
+				SELECT order_id id, email COLLATE %i value
+				  FROM %i
 				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
-				SELECT order_id id, phone COLLATE $collation value
-				  FROM $addresses
+				SELECT order_id id, phone COLLATE %i value
+				  FROM %i
 				 WHERE order_id >= %d and order_id < %d
 				) a
 			WHERE value IS NOT NULL
 			ORDER BY id;
 QUERY;
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$query = $wpdb->prepare( $query,
 			array(
-				$first,
-				$last,
-				$first,
-				$last,
-				$first,
-				$last,
-				$first,
-				$last,
-				$first,
-				$last,
-				$first,
-				$last,
-				$first,
-				$last
+				$wpdb->collate, $wpdb->postmeta, $first, $last,
+				$wpdb->collate, $wpdb->prefix . 'wc_orders_meta', $first, $last,
+				$wpdb->collate, $wpdb->prefix . 'woocommerce_order_items', $first, $last,
+				$wpdb->collate, $wpdb->prefix . 'wc_orders', $first, $last,
+				$wpdb->collate, $wpdb->prefix . 'wc_order_addresses', $first, $last,
+				$wpdb->collate, $wpdb->prefix . 'wc_order_addresses', $first, $last,
+				$wpdb->collate, $wpdb->prefix . 'wc_order_addresses', $first, $last
 			) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$resultset = $wpdb->get_results( $query );
 		if ( false === $resultset ) {
 			$wpdb->bail( 'Order data retrieval failure' );
 		}
-
-		error_log( "ifirst: $first  ilast: $last  rows: " . count( $resultset ) );
-
 
 		return $resultset;
 	}
@@ -434,12 +416,9 @@ QUERY;
 	 */
 	public function insert_trigrams( $resultset ) {
 		global $wpdb;
-		$tablename = $this->tablename;
-
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$query = $wpdb->prepare( "INSERT IGNORE INTO $tablename (trigram, id) VALUES (%s, %d);", $trigram[0], $trigram[1] );
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$query = $wpdb->prepare( 'INSERT IGNORE INTO %i (trigram, id) VALUES (%s, %d);', $this->tablename, $trigram[0], $trigram[1] );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$status = $wpdb->query( $query );
 
 			if ( false === $status ) {
@@ -475,7 +454,6 @@ QUERY;
 
 	/**
 	 * @param array $trigrams
-	 * @param $wpdb
 	 *
 	 * @return void
 	 */
@@ -484,9 +462,9 @@ QUERY;
 		if ( ! is_array( $trigrams ) || 0 === count( $trigrams ) ) {
 			return;
 		}
-		$query = "INSERT IGNORE INTO {$this->tablename} (trigram, id) VALUES "
+		$query = $wpdb->prepare ( 'INSERT IGNORE INTO %i (trigram, id) VALUES ', $this->tablename )
 		         . implode( ',', array_keys( $trigrams ) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $query );
 		if ( false === $result ) {
 			$wpdb->bail( 'inserts failure' );
