@@ -36,7 +36,7 @@ See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/3
 
 = What's the fix? =
 
-Build a trigram lookup table, maintain it, and use it for the queries.
+    Build a [trigram lookup table](https://www.plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/#how-does-it-work-trigrams), maintain it, and use it for the queries.
 
 = How much space does the trigram lookup table take? =
 
