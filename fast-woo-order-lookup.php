@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnusedParameterInspection */
 
 /**
  * Fast Woo Order Lookup
@@ -11,8 +11,7 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       0.2.7
- * Requires at least: 6.2
+ * Version:       0.4.0
  * Author:        OllieJones
  * Author URI:    https://github.com/OllieJones
  * Text Domain:   fast-woo-order-lookup
@@ -104,14 +103,15 @@ class FastWooOrderLookup {
 	 */
 	private function __construct() {
 		/* Query manipulation */
-		add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ), 10, 1 );
-		add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ), 10, 1 );
+		add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ) );
+		add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ) );
 		add_filter( 'woocommerce_shop_order_search_results', array( $this, 'filter_search_results' ), 10, 3 );
 		add_filter( 'woocommerce_shop_subscription_search_results', array( $this, 'filter_search_results' ), 10, 3 );
-		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ), 10, 1 );
+		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ) );
 		add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
+		add_filter( 'postmeta_form_keys', array( $this, 'postmeta_form_keys' ), 10, 2 );
 
-		$dir = plugin_dir_path( __FILE__ );
+        $dir = plugin_dir_path( __FILE__ );
 		require_once( $dir . 'code/class-textdex.php' );
 		$this->textdex = new Textdex();
 		$this->textdex->activate();
@@ -124,15 +124,27 @@ class FastWooOrderLookup {
 	public function show_status() {
 		if ( ! $this->textdex->is_ready() ) {
 			load_plugin_textdomain( 'fast-woo-order-lookup', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-			$percent = number_format( 100 * $this->textdex->fraction_complete(), 0 );
-			/* translators: 1: percent complete integer */
-			$msg = __( '%1$d%% complete.', 'fast-woo-order-lookup' );
-			$msg = sprintf( $msg, $percent );
+			$sa1     = __( 'See the', 'fast-woo-order-lookup' );
+			$sa2     = __( 'Scheduled Actions status page', 'fast-woo-order-lookup' );
+			$sa3     = __( 'for details.', 'fast-woo-order-lookup' );
+			$percent = number_format( 100 * $this->textdex->fraction_complete() );
+			if ( '0' === $percent ) {
+				$ms1 = __( 'Fast Woo Order Lookup indexing begins soon.', 'fast-woo-order-lookup' );
+				$ms2 = '';
+			} else {
+				$ms1 = __( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' );
+				/* translators: 1: percent complete integer */
+				$ms2 = __( '%1$d%% complete.', 'fast-woo-order-lookup' );
+				$ms2 = sprintf( $ms2, $percent );
+			}
 			?>
             <div class="notice notice-info">
                 <p>
-					<?php esc_html_e( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' ); ?>
-					<?php echo esc_html( $msg ); ?>
+					<?php echo esc_html( $ms1 ); ?>
+					<?php echo esc_html( $ms2 ); ?>
+					<?php echo esc_html( $sa1 ); ?>
+                    <a href="/wp-admin/admin.php?page=wc-status&tab=action-scheduler&s=fast_woo_order_lookup_textdex_action"><?php echo esc_html( $sa2 ); ?></a>
+					<?php echo esc_html( $sa3 ); ?>
                 </p></div>
 			<?php
 		}
@@ -163,7 +175,7 @@ class FastWooOrderLookup {
 		}
 		/* Hook to mung the queries. */
 		$this->filtering = true;
-		add_filter( 'query', array( $this, 'standard_query' ), 1, 1 );
+		add_filter( 'query', array( $this, 'standard_query' ), 1 );
 
 		return $search_fields;
 	}
@@ -241,7 +253,7 @@ class FastWooOrderLookup {
 
 			/* Hook to mung the queries. */
 			$this->filtering = true;
-			add_filter( 'query', array( $this, 'hpos_query' ), 1, 1 );
+			add_filter( 'query', array( $this, 'hpos_query' ), 1 );
 		}
 
 		return $args;
@@ -294,13 +306,61 @@ class FastWooOrderLookup {
 
 		return $query;
 	}
+
+	/** Hook telling us to engage query monkeypatching for
+	 *   https://github.com/woocommerce/woocommerce/issues/47212
+	 *
+	 * @param array|null $keys
+	 * @param Automattic\WooCommerce\Admin\Overrides\Order $order
+	 *
+	 * @return mixed
+	 */
+	public function postmeta_form_keys( $keys, $order ) {
+		if ( is_object( $order ) &&
+		     false !== strstr( get_class( $order ), 'WooCommerce' ) ) {
+			/* we are in WooCommerce someplace, mung the queries to come */
+			$this->filtering = true;
+			add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+		}
+		return $keys;
+	}
+
+	/**
+     *  Patch the query that looks for non-hidden (don't start with underscore) meta_keys
+     *   so it doesn't take too long.
+     *
+     *  Note that even this query can be sped up by two orders of magnitude by getting rid of the
+     *   prefix index.
+     *
+	 * @param string $query
+	 *
+	 * @return string
+	 */
+    public function postmeta_form_keys_query( $query ) {
+        if (! $this->filtering) {
+            return $query;
+        }
+        global $wpdb;
+        $ordermeta = $wpdb->prefix . 'wc_orders_meta';
+        $detect =  "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key NOT LIKE '\\\\_%' ORDER BY meta_key ASC";
+        $replace = "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key NOT LIKE '\\\\_%' AND meta_key NOT BETWEEN '_a' AND '_z' AND meta_key <> '' ORDER BY meta_key ASC";
+        if (null !== strstr($query, $detect)) {
+            /* we can stop looking at queries as soon as we find ours. */
+	        $query = str_replace( $detect, $replace, $query );
+	        $this->filtering = false;
+	        remove_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+        }
+	    return $query;
+    }
+
+
 }
 
 // Plugin name
 const FAST_WOO_ORDER_LOOKUP_NAME        = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION     = '0.1.4';
+const FAST_WOO_ORDER_LOOKUP_VERSION     = '0.4.0';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE = __FILE__;
@@ -334,13 +394,13 @@ add_action( 'woocommerce_order_object_updated_props',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_object_updated_props' ), 10, 2 );
 /* Hook changes to order status. */
 add_action( 'woocommerce_delete_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
 add_action( 'woocommerce_trash_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
 add_action( 'woocommerce_untrash_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
 add_action( 'woocommerce_cancelled_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ), 10, 1 );
+	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
 add_action( 'update_post_meta',
 	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'update_post_meta' ), 10, 4 );
 
