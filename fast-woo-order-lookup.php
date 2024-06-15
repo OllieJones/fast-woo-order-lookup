@@ -11,7 +11,7 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       0.4.0
+ * Version:       0.4.1
  * Author:        OllieJones
  * Author URI:    https://github.com/OllieJones
  * Text Domain:   fast-woo-order-lookup
@@ -80,7 +80,7 @@ class FastWooOrderLookup {
 	 */
 	public static function woocommerce_order_data_store( $store ) {
 		if ( 'WC_Order_Data_Store_CPT' === $store || 'WCS_Subscription_Data_Store_CPT' === $store ) {
-            self::getInstance();
+			self::getInstance();
 		}
 
 		return $store;
@@ -111,7 +111,7 @@ class FastWooOrderLookup {
 		add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
 		add_filter( 'postmeta_form_keys', array( $this, 'postmeta_form_keys' ), 10, 2 );
 
-        $dir = plugin_dir_path( __FILE__ );
+		$dir = plugin_dir_path( __FILE__ );
 		require_once( $dir . 'code/class-textdex.php' );
 		$this->textdex = new Textdex();
 		$this->textdex->activate();
@@ -322,36 +322,44 @@ class FastWooOrderLookup {
 			$this->filtering = true;
 			add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
 		}
+
 		return $keys;
 	}
 
 	/**
-     *  Patch the query that looks for non-hidden (don't start with underscore) meta_keys
-     *   so it doesn't take too long.
-     *
-     *  Note that even this query can be sped up by two orders of magnitude by getting rid of the
-     *   prefix index.
-     *
+	 *  Patch the query that looks for non-hidden (don't start with underscore) meta_keys
+	 *   so it doesn't take too long.
+	 *
+	 *  Note that even this query can be sped up by two orders of magnitude by getting rid of the
+	 *   prefix index.
+	 *
 	 * @param string $query
 	 *
 	 * @return string
 	 */
-    public function postmeta_form_keys_query( $query ) {
-        if (! $this->filtering) {
-            return $query;
-        }
-        global $wpdb;
-        $ordermeta = $wpdb->prefix . 'wc_orders_meta';
-        $detect =  "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key NOT LIKE '\\\\_%' ORDER BY meta_key ASC";
-        $replace = "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key NOT LIKE '\\\\_%' AND meta_key NOT BETWEEN '_a' AND '_z' AND meta_key <> '' ORDER BY meta_key ASC";
-        if (null !== strstr($query, $detect)) {
-            /* we can stop looking at queries as soon as we find ours. */
-	        $query = str_replace( $detect, $replace, $query );
-	        $this->filtering = false;
-	        remove_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
-        }
-	    return $query;
-    }
+	public function postmeta_form_keys_query( $query ) {
+		if ( ! $this->filtering ) {
+			return $query;
+		}
+		global $wpdb;
+		$ordermeta = $wpdb->prefix . 'wc_orders_meta';
+		$detect890 = "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key NOT LIKE '\\\\_%' ORDER BY meta_key ASC";
+		$detect893 = "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key != '' AND meta_key NOT LIKE '\\\\_%' ORDER BY meta_key ASC";
+		$replace   = "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key != '' AND meta_key NOT LIKE '\\\\_%' AND meta_key NOT BETWEEN '_a' AND '_z' ORDER BY meta_key ASC";
+		if ( false !== strstr( $query, $detect890 ) ) {
+			/* we can stop looking at queries as soon as we find ours. */
+			$query           = str_replace( $detect890, $replace, $query );
+			$this->filtering = false;
+			remove_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+		} else if ( false !== strstr( $query, $detect893 ) ) {
+			/* we can stop looking at queries as soon as we find ours. */
+			$query           = str_replace( $detect893, $replace, $query );
+			$this->filtering = false;
+			remove_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+		}
+
+		return $query;
+	}
 
 
 }
@@ -360,7 +368,7 @@ class FastWooOrderLookup {
 const FAST_WOO_ORDER_LOOKUP_NAME        = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION     = '0.4.0';
+const FAST_WOO_ORDER_LOOKUP_VERSION     = '0.4.1';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE = __FILE__;
