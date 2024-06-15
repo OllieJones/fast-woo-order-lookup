@@ -150,8 +150,13 @@ QUERY;
 
 		$textdex_status = $this->get_option();
 
+		$denominator = ( 0.0 + $textdex_status['last'] - $textdex_status['first'] );
+		if ( $denominator <= 0.0 ) {
+			return 0.0;
+		}
+
 		$result = 1.0 - ( ( 0.0 + $textdex_status['last'] - $textdex_status['current'] )
-		                  / ( 0.0 + $textdex_status['first'] ) );
+		                  / $denominator );
 		if ( $result < 0.0 ) {
 			$result = 0.0;
 		}
