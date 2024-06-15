@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5.3
 Requires PHP: 5.6
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -26,7 +26,14 @@ The downside: the trigram table takes database space and takes time to generate.
 
 The orders page itself contains a very slow query (to be fixed in Woocommerce 9.0.0) to look up meta_keys. This fixes that query's performance too.
 
+<h4>Credits</h4>
+Thanks to Leho Kraav for bringing this problem to my attention.
+
 Thanks to Jetbrains for the use of their software development tools, especially [PhpStorm](https://www.jetbrains.com/phpstorm/). It's hard to imagine how a plugin like this one could be developed without PhpStorm's tools for exploring epic code bases like WordPress's.
+
+<h4>How can I learn more about making my WordPress site more efficient?</h4>
+
+We offer several plugins to help with your site's database efficiency. You can [read about them here](https://www.plumislandmedia.net/wordpress/performance/optimizing-wordpress-database-servers/).
 
 == Frequently Asked Questions ==
 
@@ -70,9 +77,14 @@ Generating the table seems to take about ten seconds (in the background) for eve
 
 == Upgrade Notice ==
 
-An earlier version of this plugin did not use trigram-related full text search, and therefore did not find things users expected to find. Please upgrade.
+Tnis plugin is now compatible with WooCommerce's updgrade too 8.9.3.
 
 == Changelog ==
+
+= 0.4.1 June 15, 2024
+
+* Make the patch for slow order-page viewing compatible with WooCommerce 8.9.3.
+* Fix a presentation defect in the table-generation notify message.
 
 = 0.4.0 May 10, 2024 =
 
