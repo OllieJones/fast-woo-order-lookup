@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5.3
 Requires PHP: 5.6
-Stable tag: 0.4.1
+Stable tag: 0.5.0
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -47,7 +47,7 @@ See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/3
 
 = How much space does the trigram lookup table take? =
 
-It takes about 5KiB per order, as MariaDB / MySQL database storage, counting both data and indexes. So, if your site has a million orders, the table will take something like 5GiB.
+It takes about 5-10KiB per order, as MariaDB / MySQL database storage, counting both data and indexes. So, if your site has a million orders, the table will take something like 5-10 GiB.
 
 = How long does it take to generate trigram lookup table? =
 
@@ -68,6 +68,12 @@ Generating the table seems to take about ten seconds (in the background) for eve
 1. Let the author know by creating an issue at https://github.com/OllieJones/fast-woo-order-lookup/issues
 2. Deactivate, then activate the plugin. This rebuilds the lookup table.
 
+= Even with this plugin installed my site displays individual orders very slowly. What do I do? =
+
+The query to populate the dropdown for meta keys on the order page is very slow if your site has many -- hundreds of thousands of -- orders. Read [this](https://www.plumislandmedia.net/wordpress/performance/woocommerce-key-improvement/#wp_wc_orders_meta) for details. You can add a key to work around this problem.
+
+`wp db query "ALTER TABLE wp_wc_orders_meta ADD KEY  slow_ordermeta_workaround(meta_key)"`
+
 == Installation ==
 
 1. Go to `Plugins` in the Admin menu
@@ -77,9 +83,15 @@ Generating the table seems to take about ten seconds (in the background) for eve
 
 == Upgrade Notice ==
 
-Tnis plugin is now compatible with WooCommerce's updgrade too 8.9.3.
+Tnis plugin is now compatible with WooCommerce's updgrades to 9.0.0 and 8.9.3.
 
 == Changelog ==
+
+= 0.5.0 July 1, 2024
+
+* Improved compatibility with WooCommerce 9.0.0+.
+
+* Add advice to readme.txt suggesting a new key on `wp_wc_orders_meta` for very large sites.
 
 = 0.4.1 June 15, 2024
 
