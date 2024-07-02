@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.5.3
 Requires PHP: 5.6
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -85,7 +85,13 @@ The query to populate the dropdown for meta keys on the order page is very slow 
 
 Tnis plugin is now compatible with WooCommerce's updgrades to 9.0.0 and 8.9.3.
 
+When you install this upgrade, the plugin repeats the indexing process to add some new fields.
+
 == Changelog ==
+
+= 0.5.1 July 3, 2024
+
+* Allow searching on order number and transaction id fields.
 
 = 0.5.0 July 1, 2024
 

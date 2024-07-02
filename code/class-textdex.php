@@ -46,16 +46,13 @@ class Textdex {
 	 */
 	public function activate() {
 		global $wpdb;
-		$tablename  = $this->tablename;
-		$postmeta   = $wpdb->postmeta;
-		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
-		$orderaddr  = $wpdb->prefix . 'wc_order_addresses';
+		$tablename = $this->tablename;
 
 		$textdex_status = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
 			$collation = $wpdb->collate;
-			$table = <<<TABLE
+			$table     = <<<TABLE
 CREATE TABLE $tablename (
 	t CHAR(3) NOT NULL COLLATE $collation,
     i BIGINT NOT NULL,
@@ -72,36 +69,13 @@ TABLE;
 				}
 			}
 			unset ( $textdex_status['new'] );
-			$query = <<<QUERY
-			SELECT  *
-			  FROM (
-			    	SELECT MAX(post_id) maxmeta, MIN(post_id) minmeta
-			     	  FROM $postmeta
-			         WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone') 
-			        ) a
-			  JOIN (
- 			      SELECT MAX(order_id) maxhpos, MIN(order_id) minhpos
-			        FROM $ordersmeta WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
-			      ) b ON 1=1
-        	  JOIN (
- 			      SELECT MAX(order_id) maxaddr, MIN(order_id) minaddr
-			        FROM $orderaddr 
-            ) c ON 1=1
-QUERY;
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$res   = $wpdb->get_results( $query );
-			$res   = $res[0];
-			$first = ( null !== $res->minmeta ) ? $res->minmeta : 0;
-			$first = ( null !== $res->minhpos && $res->minhpos < $first ) ? $res->minhpos : $first;
-			$first = ( null !== $res->minaddr && $res->minaddr < $first ) ? $res->minaddr : $first;
-			$last  = ( null !== $res->maxmeta ) ? $res->maxmeta : 0;
-			$last  = ( null !== $res->maxhpos && $res->maxhpos > $last ) ? $res->maxhpos : $last;
-			$last  = ( null !== $res->maxaddr && $res->maxaddr > $last ) ? $res->maxaddr : $last;
-
-			$textdex_status['last']    = $last + 1;
-			$textdex_status['current'] = $first + 0;
-			$textdex_status['first']   = $first + 0;
 			$this->update_option( $textdex_status );
+		}
+		$old_version = array_key_exists( 'version', $textdex_status ) ? $textdex_status['version'] : FAST_WOO_ORDER_LOOKUP_VERSION;
+		if ( version_compare( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION, '<' ) ) {
+			$textdex_status['version'] = FAST_WOO_ORDER_LOOKUP_VERSION;
+			$this->update_option( $textdex_status );
+			$this->get_order_id_range();
 		}
 	}
 
@@ -282,7 +256,7 @@ QUERY;
 
 		if ( 1 === count( $trigrams ) ) {
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			return $wpdb->prepare( 'SELECT i FROM ' . $this->tablename . ' WHERE t = %s', $trigrams[0] );
+			return $wpdb->prepare( 'SELECT DISTINCT i FROM ' . $this->tablename . ' WHERE t = %s', $trigrams[0] );
 		}
 		/* We make this sort of query here.
 		 *
@@ -291,6 +265,7 @@ QUERY;
 		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'liv') b ON a.id = b.id
 		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'ive') c ON a.id = c.id
 		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'ver') d ON a.id = d.id
+		 *  UNION ALL SELECT numvalue id  (only if we have a numeric search term)
 		 */
 		$alias_num = 0;
 
@@ -372,7 +347,7 @@ QUERY;
 	 * @return array|false|mixed|object|stdClass[]|null
 	 */
 	private function get_order_metadata( $first, $last = null ) {
-		$first =    (int) $first;
+		$first = (int) $first;
 		if ( null === $last ) {
 			$last = $first + 1;
 		}
@@ -410,6 +385,16 @@ QUERY;
 				 WHERE id >= %d and id < %d
 				
 				UNION ALL
+				SELECT id, id COLLATE $collation value
+				  FROM $orders
+				 WHERE id >= %d and id < %d
+				
+				UNION ALL
+				SELECT id, transaction_id COLLATE $collation value
+				  FROM $orders
+				 WHERE id >= %d and id < %d AND transaction_id IS NOT NULL
+				
+				UNION ALL
 				SELECT order_id id, CONCAT_WS (' ', first_name, last_name, company, address_1, address_2, city, state, postcode, country) COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= %d and order_id < %d
@@ -430,6 +415,10 @@ QUERY;
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$query = $wpdb->prepare( $query,
 			array(
+				$first,
+				$last,
+				$first,
+				$last,
 				$first,
 				$last,
 				$first,
@@ -488,6 +477,7 @@ QUERY;
 				'batch'         => $this->batch_size,
 				'trigram_batch' => $this->trigram_batch_size,
 				'last'          => - 1,
+				'version'       => FAST_WOO_ORDER_LOOKUP_VERSION
 			) );
 	}
 
@@ -499,7 +489,7 @@ QUERY;
 	private function update_option(
 		$textdex_status
 	) {
-		update_option( $this->option_name, $textdex_status, false );
+		update_option( $this->option_name, $textdex_status, true );
 	}
 
 	/**
@@ -536,6 +526,55 @@ QUERY;
 		}
 
 		return 'a' . ( $n - strlen( $this->alias_chars ) );
+	}
+
+	/**
+	 * @param $postmeta
+	 * @param $ordersmeta
+	 * @param $orderaddr
+	 * @param $wpdb
+	 * @param $textdex_status
+	 *
+	 * @return void
+	 */
+	public function get_order_id_range() {
+		global $wpdb;
+		$postmeta   = $wpdb->postmeta;
+		$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
+		$orderaddr  = $wpdb->prefix . 'wc_order_addresses';
+
+		$textdex_status = $this->get_option();
+
+		$query = <<<QUERY
+			SELECT  *
+			  FROM (
+			    	SELECT MAX(post_id) maxmeta, MIN(post_id) minmeta
+			     	  FROM $postmeta
+			         WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone') 
+			        ) a
+			  JOIN (
+ 			      SELECT MAX(order_id) maxhpos, MIN(order_id) minhpos
+			        FROM $ordersmeta WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
+			      ) b ON 1=1
+        	  JOIN (
+ 			      SELECT MAX(order_id) maxaddr, MIN(order_id) minaddr
+			        FROM $orderaddr 
+            ) c ON 1=1
+QUERY;
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$res   = $wpdb->get_results( $query );
+		$res   = $res[0];
+		$first = ( null !== $res->minmeta ) ? $res->minmeta : 0;
+		$first = ( null !== $res->minhpos && $res->minhpos < $first ) ? $res->minhpos : $first;
+		$first = ( null !== $res->minaddr && $res->minaddr < $first ) ? $res->minaddr : $first;
+		$last  = ( null !== $res->maxmeta ) ? $res->maxmeta : 0;
+		$last  = ( null !== $res->maxhpos && $res->maxhpos > $last ) ? $res->maxhpos : $last;
+		$last  = ( null !== $res->maxaddr && $res->maxaddr > $last ) ? $res->maxaddr : $last;
+
+		$textdex_status['last']    = $last + 1;
+		$textdex_status['current'] = $first + 0;
+		$textdex_status['first']   = $first + 0;
+		$this->update_option( $textdex_status );
 	}
 }
 
