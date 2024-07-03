@@ -35,8 +35,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+const FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE = 'fast_woo_order_lookup_metakey_cache';
+
 class FastWooOrderLookup {
-	const FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE = 'fast_woo_order_lookup_metakey_cache';
+
 	private static $instance = null;
 
 	private $textdex;
@@ -328,7 +330,7 @@ class FastWooOrderLookup {
 			return $keys;
 		}
 
-		$cached_keys = get_transient( self::FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
+		$cached_keys = get_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
 		if ( is_array( $cached_keys ) ) {
 			return $cached_keys;
 		} else {
@@ -340,7 +342,7 @@ class FastWooOrderLookup {
 			$limit = apply_filters( 'postmeta_form_limit', 30 );
 			$keys  = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
 
-			set_transient( self::FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys, WEEK_IN_SECONDS );
+			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys, WEEK_IN_SECONDS );
 		}
 
 		return $keys;
@@ -382,7 +384,7 @@ class FastWooOrderLookup {
 	}
 
 	private function update_meta_keys( array $orders ) {
-		$cached_keys = get_transient( self::FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
+		$cached_keys = get_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
 		if ( ! is_array( $cached_keys ) ) {
 			return;
 		}
@@ -401,7 +403,7 @@ class FastWooOrderLookup {
 			}
 		}
 		if ( $changed ) {
-			set_transient( self::FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys, WEEK_IN_SECONDS );
+			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys, WEEK_IN_SECONDS );
 		}
 	}
 
@@ -409,13 +411,13 @@ class FastWooOrderLookup {
 }
 
 // Plugin name
-const FAST_WOO_ORDER_LOOKUP_NAME        = 'Fast Woo Order Lookup';
+const FAST_WOO_ORDER_LOOKUP_NAME          = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION     = '1.0.0';
+const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.0.0';
 
 // Plugin Root File
-const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE = __FILE__;
+const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE   = __FILE__;
 
 // Plugin base
 define( 'FAST_WOO_ORDER_LOOKUP_PLUGIN_BASE', plugin_basename( FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE ) );
@@ -475,6 +477,7 @@ function deactivate() {
 	require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
 	$textdex = new Textdex();
 	$textdex->deactivate();
+	delete_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
 }
 
 function uninstall() {
