@@ -70,36 +70,36 @@ Generating the table seems to take about ten seconds (in the background) for eve
 
 = Even with this plugin installed my site displays individual orders very slowly. What do I do? =
 
-The query to populate the dropdown for meta keys on the order page is very slow if your site has many -- hundreds of thousands of -- orders. Read [this](https://www.plumislandmedia.net/wordpress/performance/woocommerce-key-improvement/#wp_wc_orders_meta) for details. You can add a key to work around this problem.
+The query to populate the dropdown for custom field names (meta keys) on the order page is very slow if your site has many -- hundreds of thousands of -- orders. Read [this](https://www.plumislandmedia.net/wordpress/performance/woocommerce-key-improvement/#wp_wc_orders_meta) for details.  Version 1.0.0 of this plugin includes a cache to avoid repeating that query.
 
-`wp db query "ALTER TABLE wp_wc_orders_meta ADD KEY  slow_ordermeta_workaround(meta_key)"`
+You can add a key to work around this problem.
+
+`wp db query "ALTER TABLE wp_wc_orders_meta ADD KEY slow_ordermeta_workaround(meta_key)"`
 
 == Installation ==
 
-1. Go to `Plugins` in the Admin menu
-2. Click on the button `Add new`
-3. Click on Upload Plugin
-4. Find `fast-woo-order-lookup.zip` and upload it
+Follow the usual procedure for installing a plugin from the wordpress.org plugin repository.
 
 == Upgrade Notice ==
 
-Tnis plugin is now compatible with WooCommerce's updgrades to 9.0.0 and 8.9.3.
+Tnis plugin is now compatible with WooCommerce's updgrades to 9.0.0 and 8.9.3. And, it keeps a cache of custom field names for orders to avoid the very slow load time for order pages.
 
 When you install this upgrade, the plugin repeats the indexing process to add some new fields.
 
 == Changelog ==
 
-= 0.5.1 July 3, 2024
+= 1.0.0 July 3, 2024 =
 
 * Allow searching on order number and transaction id fields.
+* Keep a cache of the meta_names for order custom fields to avoid repeating a very slow query.
 
-= 0.5.0 July 1, 2024
+= 0.5.0 July 1, 2024 =
 
 * Improved compatibility with WooCommerce 9.0.0+.
 
 * Add advice to readme.txt suggesting a new key on `wp_wc_orders_meta` for very large sites.
 
-= 0.4.1 June 15, 2024
+= 0.4.1 June 15, 2024 =
 
 * Make the patch for slow order-page viewing compatible with WooCommerce 8.9.3.
 * Fix a presentation defect in the table-generation notify message.

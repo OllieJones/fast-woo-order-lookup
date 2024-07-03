@@ -11,7 +11,7 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       0.5.1
+ * Version:       1.0.0
  * Author:        OllieJones
  * Author URI:    https://github.com/OllieJones
  * Text Domain:   fast-woo-order-lookup
@@ -28,12 +28,15 @@
 
 namespace Fast_Woo_Order_Lookup;
 
-// Exit if accessed directly.
+use Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStoreMeta;
+use WC_Order;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 class FastWooOrderLookup {
+	const FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE = 'fast_woo_order_lookup_metakey_cache';
 	private static $instance = null;
 
 	private $textdex;
@@ -158,6 +161,7 @@ class FastWooOrderLookup {
 	public function update_textdex() {
 		if ( count( $this->orders_to_update ) > 0 ) {
 			$this->textdex->update( array_keys( $this->orders_to_update ) );
+			$this->update_meta_keys( array_keys( $this->orders_to_update ) );
 		}
 	}
 
@@ -307,7 +311,11 @@ class FastWooOrderLookup {
 		return $query;
 	}
 
-	/** Hook telling us to engage query monkeypatching for
+	/** Filter for custom order fields.
+	 *
+	 * Here we implement necessary monkeypatching for the query,
+	 * and a cache for the keys.
+	 *
 	 *   https://github.com/woocommerce/woocommerce/issues/47212
 	 *
 	 * @param array|null $keys
@@ -316,10 +324,23 @@ class FastWooOrderLookup {
 	 * @return mixed
 	 */
 	public function postmeta_form_keys( $keys, $order ) {
-		if ( @version_compare( WOOCOMMERCE_VERSION, '9.0.0', '<') && @is_a( $order, \WC_Order::class ) ) {
-			/* we are in WooCommerce < 9.0.0 someplace, mung the queries to come */
-			$this->filtering = true;
-			add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+		if ( ! @is_a( $order, WC_Order::class ) ) {
+			return $keys;
+		}
+
+		$cached_keys = get_transient( self::FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
+		if ( is_array( $cached_keys ) ) {
+			return $cached_keys;
+		} else {
+			if ( @version_compare( WOOCOMMERCE_VERSION, '9.0.0', '<' ) ) {
+				/* we are in WooCommerce < 9.0.0 someplace, mung the queries to come */
+				$this->filtering = true;
+				add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+			}
+			$limit = apply_filters( 'postmeta_form_limit', 30 );
+			$keys  = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
+
+			set_transient( self::FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys, WEEK_IN_SECONDS );
 		}
 
 		return $keys;
@@ -360,6 +381,30 @@ class FastWooOrderLookup {
 		return $query;
 	}
 
+	private function update_meta_keys( array $orders ) {
+		$cached_keys = get_transient( self::FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
+		if ( ! is_array( $cached_keys ) ) {
+			return;
+		}
+		$changed = false;
+		foreach ( $orders as $order_id ) {
+			$order = wc_get_order( $order_id );
+			$metas = wc_get_container()->get( OrdersTableDataStoreMeta::class )->read_meta( $order );
+			foreach ( $metas as $meta ) {
+				$meta_key = $meta->meta_key;
+				if ( ! str_starts_with( $meta_key, '_' ) ) {
+					if ( ! in_array( $meta_key, $cached_keys ) ) {
+						$changed        = true;
+						$cached_keys [] = $meta_key;
+					}
+				}
+			}
+		}
+		if ( $changed ) {
+			set_transient( self::FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys, WEEK_IN_SECONDS );
+		}
+	}
+
 
 }
 
@@ -367,7 +412,7 @@ class FastWooOrderLookup {
 const FAST_WOO_ORDER_LOOKUP_NAME        = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION     = '0.5.1';
+const FAST_WOO_ORDER_LOOKUP_VERSION     = '1.0.0';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE = __FILE__;
@@ -420,7 +465,7 @@ function activate() {
 	require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
 	$textdex = new Textdex();
 	$textdex->activate();
-    $textdex->get_order_id_range();
+	$textdex->get_order_id_range();
 	$textdex->load_textdex();
 
 }
