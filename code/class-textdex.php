@@ -72,7 +72,7 @@ TABLE;
 			$this->update_option( $textdex_status );
 		}
 		$old_version = array_key_exists( 'version', $textdex_status ) ? $textdex_status['version'] : FAST_WOO_ORDER_LOOKUP_VERSION;
-		if ( version_compare( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION, '<' ) ) {
+		if ( $this->new_minor_version( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION ) ) {
 			$textdex_status['version'] = FAST_WOO_ORDER_LOOKUP_VERSION;
 			$this->update_option( $textdex_status );
 			$this->get_order_id_range();
@@ -575,6 +575,28 @@ QUERY;
 		$textdex_status['current'] = $first + 0;
 		$textdex_status['first']   = $first + 0;
 		$this->update_option( $textdex_status );
+	}
+
+	/**
+	 * Is $version1 earlier than $version2, ignoring patch levels?
+	 *
+	 * @param string $version1 In major.minor.patch semver format.
+	 * @param string $version2
+	 *
+	 * @return bool
+	 */
+	private function new_minor_version( $version1, $version2 ) {
+		if ( 0 === version_compare( $version1, $version2 ) ) {
+			return false;
+		}
+		$s        = explode( '.', $version1 );
+		$s[2]     = '0';
+		$version1 = implode( '.', $s );
+		$s        = explode( '.', $version2 );
+		$s[2]     = '0';
+		$version2 = implode( '.', $s );
+
+		return version_compare( $version1, $version2, '<' );
 	}
 }
 
