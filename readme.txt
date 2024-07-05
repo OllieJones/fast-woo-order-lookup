@@ -5,7 +5,7 @@ Donate link:
 Contributors:  OllieJones
 Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
-Tested up to: 6.5.3
+Tested up to: 6.6
 Requires PHP: 5.6
 Stable tag: 0.5.1
 Requires Plugins: woocommerce
