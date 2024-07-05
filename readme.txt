@@ -7,7 +7,7 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.6
 Requires PHP: 5.6
-Stable tag: 0.5.1
+Stable tag: 1.0.1
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
