@@ -132,14 +132,15 @@ class FastWooOrderLookup {
 			$sa1     = __( 'See the', 'fast-woo-order-lookup' );
 			$sa2     = __( 'Scheduled Actions status page', 'fast-woo-order-lookup' );
 			$sa3     = __( 'for details.', 'fast-woo-order-lookup' );
-			$percent = number_format( 100 * $this->textdex->fraction_complete() );
-			if ( '0' === $percent ) {
+			$frac    = $this->textdex->fraction_complete();
+			if ( $frac < 0.01 ) {
 				$ms1 = __( 'Fast Woo Order Lookup indexing begins soon.', 'fast-woo-order-lookup' );
 				$ms2 = '';
 			} else {
+				$percent = number_format( 100 * $this->textdex->fraction_complete(), 1 );
 				$ms1 = __( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' );
-				/* translators: 1: percent complete integer */
-				$ms2 = __( '%1$d%% complete.', 'fast-woo-order-lookup' );
+				/* translators: 1: percent 12.3 */
+				$ms2 = __( '%1$s%% complete.', 'fast-woo-order-lookup' );
 				$ms2 = sprintf( $ms2, $percent );
 			}
 			?>
@@ -148,7 +149,7 @@ class FastWooOrderLookup {
 					<?php echo esc_html( $ms1 ); ?>
 					<?php echo esc_html( $ms2 ); ?>
 					<?php echo esc_html( $sa1 ); ?>
-                    <a href="/wp-admin/admin.php?page=wc-status&tab=action-scheduler&s=fast_woo_order_lookup_textdex_action"><?php echo esc_html( $sa2 ); ?></a>
+                    <a href="admin.php?page=wc-status&tab=action-scheduler&s=fast_woo_order_lookup_textdex_action"><?php echo esc_html( $sa2 ); ?></a>
 					<?php echo esc_html( $sa3 ); ?>
                 </p></div>
 			<?php
