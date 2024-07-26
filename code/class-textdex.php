@@ -311,30 +311,42 @@ TABLE;
 	 */
 	public function update( array $order_ids ) {
 		global $wpdb;
-		$tablename = $this->tablename;
+		$tablename            = $this->tablename;
+		$textdex_status       = $this->get_option();
+		$textdex_status_dirty = false;
+
+		foreach ( $order_ids as $order_id ) {
+			$original  = $textdex_status['last'];
+			$textdex_status['last'] = max( $textdex_status['last'], $order_id + 1 );
+			if ($textdex_status['last'] !== $original ) {
+				$textdex_status_dirty = true;
+			}
+			if ( $this->is_ready()) {
+				$textdex_status['current'] = max( $textdex_status['current'], $order_id );
+				if ( $textdex_status['current'] !== $original ) {
+					$textdex_status_dirty =true;
+				}
+			}
+		}
+		if ($textdex_status_dirty) {
+			$this->update_option( $textdex_status );
+			$textdex_status_dirty  = false;
+		}
 
 		if ( $this->is_ready() ) {
+			/* Do this all at once to avoid autocommit overhead. */
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( 'BEGIN;' );
 			foreach ( $order_ids as $order_id ) {
-				/* Do this all at once to avoid autocommit overhead. */
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->query( 'BEGIN;' );
 				/* Get rid of old metadata */
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE i = %d', $order_id ) );
 				/* Retrieve and add the new metadata */
 				$resultset = $this->get_order_metadata( $order_id );
 				$this->insert_trigrams( $resultset );
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->query( 'COMMIT;' );
 			}
-		}
-		$textdex_status = $this->get_option();
-		$original       = $textdex_status['last'];
-		foreach ( $order_ids as $order_id ) {
-			$textdex_status['last'] = max( $textdex_status['last'], $order_id );
-		}
-		if ( $textdex_status['last'] !== $original ) {
-			$this->update_option( $textdex_status );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( 'COMMIT;' );
 		}
 	}
 

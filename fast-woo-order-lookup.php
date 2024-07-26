@@ -129,16 +129,16 @@ class FastWooOrderLookup {
 	public function show_status() {
 		if ( ! $this->textdex->is_ready() ) {
 			load_plugin_textdomain( 'fast-woo-order-lookup', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-			$sa1     = __( 'See the', 'fast-woo-order-lookup' );
-			$sa2     = __( 'Scheduled Actions status page', 'fast-woo-order-lookup' );
-			$sa3     = __( 'for details.', 'fast-woo-order-lookup' );
-			$frac    = $this->textdex->fraction_complete();
+			$sa1  = __( 'See the', 'fast-woo-order-lookup' );
+			$sa2  = __( 'Scheduled Actions status page', 'fast-woo-order-lookup' );
+			$sa3  = __( 'for details.', 'fast-woo-order-lookup' );
+			$frac = $this->textdex->fraction_complete();
 			if ( $frac < 0.01 ) {
 				$ms1 = __( 'Fast Woo Order Lookup indexing begins soon.', 'fast-woo-order-lookup' );
 				$ms2 = '';
 			} else {
 				$percent = number_format( 100 * $this->textdex->fraction_complete(), 1 );
-				$ms1 = __( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' );
+				$ms1     = __( 'Fast Woo Order Lookup indexing still in progress.', 'fast-woo-order-lookup' );
 				/* translators: 1: percent 12.3 */
 				$ms2 = __( '%1$s%% complete.', 'fast-woo-order-lookup' );
 				$ms2 = sprintf( $ms2, $percent );
@@ -163,8 +163,8 @@ class FastWooOrderLookup {
 	 */
 	public function update_textdex() {
 		if ( count( $this->orders_to_update ) > 0 ) {
-			$this->textdex->update( array_keys( $this->orders_to_update ) );
 			$this->update_meta_keys( array_keys( $this->orders_to_update ) );
+			$this->textdex->update( array_keys( $this->orders_to_update ) );
 		}
 	}
 
@@ -304,6 +304,10 @@ class FastWooOrderLookup {
 		$orders     = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 
+        /* Skip modifying the FULLTEXT search option choice. */
+		if ( str_contains( $query, 'IN BOOLEAN MODE' ) ) {
+			return $query;
+		}
 		if ( str_contains( $query, "$orderitems AS search_query_items ON search_query_items.order_id = $orders.id WHERE 1=1 AND" ) ||
 		     str_contains( $query, "SELECT $orders.id FROM $orders  WHERE 1=1 AND" ) ||
 		     str_contains( $query, "SELECT COUNT(DISTINCT $orders.id) FROM  $orders  WHERE 1=1 AND" )
@@ -343,7 +347,7 @@ class FastWooOrderLookup {
 			$limit = apply_filters( 'postmeta_form_limit', 30 );
 			$keys  = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
 
-			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys, WEEK_IN_SECONDS );
+			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys );
 		}
 
 		return $keys;
@@ -404,7 +408,7 @@ class FastWooOrderLookup {
 			}
 		}
 		if ( $changed ) {
-			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys, WEEK_IN_SECONDS );
+			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys );
 		}
 	}
 
