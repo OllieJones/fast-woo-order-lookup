@@ -97,6 +97,9 @@ TABLE;
 	 * @return void
 	 */
 	public function load_batch() {
+		require_once( plugin_dir_path( __FILE__ ) . 'class-custom-fields.php' );
+		$cust = new Custom_Fields();
+		$cust->get_order_custom_field_names();
 		$result = $this->load_next_batch();
 		if ( $result ) {
 			$this->schedule_batch();
@@ -316,21 +319,21 @@ TABLE;
 		$textdex_status_dirty = false;
 
 		foreach ( $order_ids as $order_id ) {
-			$original  = $textdex_status['last'];
+			$original               = $textdex_status['last'];
 			$textdex_status['last'] = max( $textdex_status['last'], $order_id + 1 );
-			if ($textdex_status['last'] !== $original ) {
+			if ( $textdex_status['last'] !== $original ) {
 				$textdex_status_dirty = true;
 			}
-			if ( $this->is_ready()) {
+			if ( $this->is_ready() ) {
 				$textdex_status['current'] = max( $textdex_status['current'], $order_id );
 				if ( $textdex_status['current'] !== $original ) {
-					$textdex_status_dirty =true;
+					$textdex_status_dirty = true;
 				}
 			}
 		}
-		if ($textdex_status_dirty) {
+		if ( $textdex_status_dirty ) {
 			$this->update_option( $textdex_status );
-			$textdex_status_dirty  = false;
+			$textdex_status_dirty = false;
 		}
 
 		if ( $this->is_ready() ) {

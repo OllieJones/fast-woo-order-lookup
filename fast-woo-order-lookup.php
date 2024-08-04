@@ -114,10 +114,9 @@ class FastWooOrderLookup {
 		add_filter( 'woocommerce_shop_subscription_search_results', array( $this, 'filter_search_results' ), 10, 3 );
 		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ) );
 		add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
-		add_filter( 'postmeta_form_keys', array( $this, 'postmeta_form_keys' ), 10, 2 );
+		add_filter( 'postmeta_form_keys', array( $this, 'postmeta_get_order_custom_field_names' ), 10, 2 );
 
-		$dir = plugin_dir_path( __FILE__ );
-		require_once( $dir . 'code/class-textdex.php' );
+		require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
 		$this->textdex = new Textdex();
 		$this->textdex->activate();
 		$this->textdex->load_textdex();
@@ -304,7 +303,7 @@ class FastWooOrderLookup {
 		$orders     = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 
-        /* Skip modifying the FULLTEXT search option choice. */
+		/* Skip modifying the FULLTEXT search option choice. */
 		if ( str_contains( $query, 'IN BOOLEAN MODE' ) ) {
 			return $query;
 		}
@@ -328,64 +327,17 @@ class FastWooOrderLookup {
 	 * @param array|null $keys
 	 * @param Automattic\WooCommerce\Admin\Overrides\Order $order
 	 *
-	 * @return mixed
+	 * @return array|null
 	 */
-	public function postmeta_form_keys( $keys, $order ) {
+	public function postmeta_get_order_custom_field_names( $keys, $order ) {
 		if ( ! @is_a( $order, WC_Order::class ) ) {
 			return $keys;
 		}
 
-		$cached_keys = get_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
-		if ( is_array( $cached_keys ) ) {
-			return $cached_keys;
-		} else {
-			if ( @version_compare( WOOCOMMERCE_VERSION, '9.0.0', '<' ) ) {
-				/* we are in WooCommerce < 9.0.0 someplace, mung the queries to come */
-				$this->filtering = true;
-				add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
-			}
-			$limit = apply_filters( 'postmeta_form_limit', 30 );
-			$keys  = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
+		require_once( plugin_dir_path( __FILE__ ) . 'code/class-custom-fields.php' );
+		$cust = new Custom_Fields();
 
-			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys );
-		}
-
-		return $keys;
-	}
-
-	/**
-	 *  Patch the query that looks for non-hidden (don't start with underscore) meta_keys
-	 *   so it doesn't take too long.
-	 *
-	 *  Note that even this query can be sped up by two orders of magnitude by getting rid of the
-	 *   prefix index.
-	 *
-	 * @param string $query
-	 *
-	 * @return string
-	 */
-	public function postmeta_form_keys_query( $query ) {
-		if ( ! $this->filtering ) {
-			return $query;
-		}
-		global $wpdb;
-		$ordermeta = $wpdb->prefix . 'wc_orders_meta';
-		$detect890 = "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key NOT LIKE '\\\\_%' ORDER BY meta_key ASC";
-		$detect893 = "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key != '' AND meta_key NOT LIKE '\\\\_%' ORDER BY meta_key ASC";
-		$replace   = "SELECT DISTINCT meta_key FROM $ordermeta WHERE meta_key != '' AND meta_key NOT LIKE '\\\\_%' AND meta_key NOT BETWEEN '_a' AND '_z' ORDER BY meta_key ASC";
-		if ( false !== strstr( $query, $detect890 ) ) {
-			/* we can stop looking at queries as soon as we find ours. */
-			$query           = str_replace( $detect890, $replace, $query );
-			$this->filtering = false;
-			remove_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
-		} else if ( false !== strstr( $query, $detect893 ) ) {
-			/* we can stop looking at queries as soon as we find ours. */
-			$query           = str_replace( $detect893, $replace, $query );
-			$this->filtering = false;
-			remove_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
-		}
-
-		return $query;
+		return $cust->get_order_custom_field_names();
 	}
 
 	private function update_meta_keys( array $orders ) {
@@ -411,7 +363,6 @@ class FastWooOrderLookup {
 			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys );
 		}
 	}
-
 
 }
 
