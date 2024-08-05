@@ -5,9 +5,9 @@ Donate link:
 Contributors:  OllieJones
 Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
-Tested up to: 6.6
+Tested up to: 6.6.1
 Requires PHP: 5.6
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -87,6 +87,10 @@ Tnis plugin is now compatible with WooCommerce's updgrades to 9.0.0 and 8.9.3. A
 When you install this upgrade, the plugin repeats the indexing process to add some new fields.
 
 == Changelog ==
+
+= 1.0.2 August 5, 2024 =
+
+* Load the meta_names cache during activation; don't let it expire.
 
 = 1.0.0 July 3, 2024 =
 

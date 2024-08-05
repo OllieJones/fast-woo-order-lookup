@@ -11,7 +11,7 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       1.0.1
+ * Version:       1.0.2
  * Author:        OllieJones
  * Author URI:    https://github.com/OllieJones
  * Text Domain:   fast-woo-order-lookup
@@ -170,6 +170,8 @@ class FastWooOrderLookup {
 
 	/**
 	 * Filter. immediately before metadata search.
+     *
+     * This only works in legacy mode, not HPOS mode.
 	 *
 	 * @param array $search_fields
 	 *
@@ -188,6 +190,8 @@ class FastWooOrderLookup {
 
 	/**
 	 * Filter. Immediately after metadata search.
+     *
+     * This only works in legacy mode, not HPOS mode.
 	 *
 	 * @param array $order_ids
 	 * @param string $term
