@@ -18,7 +18,7 @@ class Textdex {
 	/** @var int The maximum number of tuples per insert */
 	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 500;
+	private $batch_size = 1000;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
@@ -72,10 +72,12 @@ TABLE;
 			$this->update_option( $textdex_status );
 		}
 		$old_version = array_key_exists( 'version', $textdex_status ) ? $textdex_status['version'] : FAST_WOO_ORDER_LOOKUP_VERSION;
-		if ( $this->new_minor_version( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION ) ) {
+		if ( -1 === version_compare( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION) ) {
+			if ( $this->new_minor_version( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION ) ) {
+				$this->get_order_id_range();
+			}
 			$textdex_status['version'] = FAST_WOO_ORDER_LOOKUP_VERSION;
 			$this->update_option( $textdex_status );
-			$this->get_order_id_range();
 		}
 	}
 
@@ -400,7 +402,7 @@ TABLE;
 				 WHERE id >= %d and id < %d
 				
 				UNION ALL
-				SELECT id, id COLLATE $collation value
+				SELECT id, CAST(id AS CHAR) COLLATE $collation value
 				  FROM $orders
 				 WHERE id >= %d and id < %d
 				
