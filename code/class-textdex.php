@@ -18,12 +18,14 @@ class Textdex {
 	/** @var int The maximum number of tuples per insert */
 	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 1000;
+	private $batch_size = 100;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
 
 	private $alias_chars = 'abcdefghijklmnopqrstuvwxyz';
+	/** @var int Number of seconds for each batch-loading action. */
+	private $max_batch_duration = 25;
 
 	public function __construct() {
 		global $wpdb;
@@ -100,12 +102,28 @@ TABLE;
 	 */
 	public function load_batch() {
 		require_once( plugin_dir_path( __FILE__ ) . 'class-custom-fields.php' );
+		$start_time = time();
+		$end_time = $start_time + $this->max_batch_duration;
 		$cust = new Custom_Fields();
 		$cust->get_order_custom_field_names();
-		$result = $this->load_next_batch();
-		if ( $result ) {
+		$done = false;
+		$another_batch = false;
+		while ( ! $done ) {
+			$another_batch = $this->load_next_batch();
+			if ( ! $another_batch ) {
+				$done = true;
+				continue;
+			}
+			$current_time = time();
+			if ( $current_time >= $end_time ) {
+				$done = true;
+				continue;
+			}
+		}
+		if ( $another_batch ) {
 			$this->schedule_batch();
 		}
+
 	}
 
 	public function schedule_batch() {
@@ -545,15 +563,6 @@ QUERY;
 		return 'a' . ( $n - strlen( $this->alias_chars ) );
 	}
 
-	/**
-	 * @param $postmeta
-	 * @param $ordersmeta
-	 * @param $orderaddr
-	 * @param $wpdb
-	 * @param $textdex_status
-	 *
-	 * @return void
-	 */
 	public function get_order_id_range() {
 		global $wpdb;
 		$postmeta   = $wpdb->postmeta;

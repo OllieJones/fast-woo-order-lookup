@@ -148,7 +148,7 @@ class FastWooOrderLookup {
 					<?php echo esc_html( $ms1 ); ?>
 					<?php echo esc_html( $ms2 ); ?>
 					<?php echo esc_html( $sa1 ); ?>
-                    <a href="admin.php?page=wc-status&tab=action-scheduler&s=fast_woo_order_lookup_textdex_action"><?php echo esc_html( $sa2 ); ?></a>
+                    <a href="admin.php?page=wc-status&tab=action-scheduler&s=fast_woo_order_lookup_textdex_action&status=pending"><?php echo esc_html( $sa2 ); ?></a>
 					<?php echo esc_html( $sa3 ); ?>
                 </p></div>
 			<?php
