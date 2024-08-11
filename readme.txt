@@ -29,6 +29,8 @@ The orders page itself contains a very slow query (to be fixed in Woocommerce 9.
 <h4>Credits</h4>
 Thanks to Leho Kraav for bringing this problem to my attention.
 
+Thanks to Sebastian Sommer for using early versions of the plugin on a large store.
+
 Thanks to Jetbrains for the use of their software development tools, especially [PhpStorm](https://www.jetbrains.com/phpstorm/). It's hard to imagine how a plugin like this one could be developed without PhpStorm's tools for exploring epic code bases like WordPress's.
 
 <h4>How can I learn more about making my WordPress site more efficient?</h4>
@@ -82,15 +84,19 @@ Follow the usual procedure for installing a plugin from the wordpress.org plugin
 
 == Upgrade Notice ==
 
+A compatibiity issue with MariaDB 10.3 and earlier is fixed.
+
+Initial indexing load now uses longer chunks.
+
 Tnis plugin is now compatible with WooCommerce's updgrades to 9.0.0 and 8.9.3. And, it keeps a cache of custom field names for orders to avoid the very slow load time for order pages.
 
 When you install this upgrade, the plugin repeats the indexing process to add some new fields.
 
 == Changelog ==
 
-= 1.1.0 August 7, 2024 =
+= 1.1.0 August 11, 2024 =
 
-* Some MariaDB / MySQL versions implicitly cast integers to latin1 strings.
+* Some MariaDB / MySQL versions implicitly cast integers to latin1 strings causing problems. Explicit casting fixes the issue.
 
 = 1.0.2 August 5, 2024 =
 

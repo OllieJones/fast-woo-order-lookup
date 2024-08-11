@@ -18,14 +18,12 @@ class Textdex {
 	/** @var int The maximum number of tuples per insert */
 	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 100;
+	private $batch_size = 200;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
 
 	private $alias_chars = 'abcdefghijklmnopqrstuvwxyz';
-	/** @var int Number of seconds for each batch-loading action. */
-	private $max_batch_duration = 25;
 
 	public function __construct() {
 		global $wpdb;
@@ -74,7 +72,7 @@ TABLE;
 			$this->update_option( $textdex_status );
 		}
 		$old_version = array_key_exists( 'version', $textdex_status ) ? $textdex_status['version'] : FAST_WOO_ORDER_LOOKUP_VERSION;
-		if ( -1 === version_compare( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION) ) {
+		if ( - 1 === version_compare( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION ) ) {
 			if ( $this->new_minor_version( $old_version, FAST_WOO_ORDER_LOOKUP_VERSION ) ) {
 				$this->get_order_id_range();
 			}
@@ -103,10 +101,17 @@ TABLE;
 	public function load_batch() {
 		require_once( plugin_dir_path( __FILE__ ) . 'class-custom-fields.php' );
 		$start_time = time();
-		$end_time = $start_time + $this->max_batch_duration;
+		/* Give ourselves max_execution_time -10 sec to run, unless max_execution_time is very short. */
+		$max_time  = ini_get( 'max_execution_time' );
+		$safe_time = ( $max_time > 30 ) ? 10 : 2;
+		$end_time  = $start_time + $max_time - $safe_time;
+		$end_time  = ( $end_time > $start_time ) ? $end_time : $start_time + 1;
+		set_time_limit( $max_time );
+
+		/* Do the field name cache (this is idempotent) */
 		$cust = new Custom_Fields();
 		$cust->get_order_custom_field_names();
-		$done = false;
+		$done          = false;
 		$another_batch = false;
 		while ( ! $done ) {
 			$another_batch = $this->load_next_batch();
@@ -119,7 +124,9 @@ TABLE;
 				$done = true;
 				continue;
 			}
+			set_time_limit( $max_time );
 		}
+		delete_transient( 'fast_woo_order_lookup_scheduled' );
 		if ( $another_batch ) {
 			$this->schedule_batch();
 		}
@@ -128,7 +135,7 @@ TABLE;
 
 	public function schedule_batch() {
 		if ( $this->have_more_batches() ) {
-			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup' );
+			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup' , true);
 		}
 	}
 
