@@ -1,0 +1,22 @@
+#!/bin/sh
+# Purge the action scheduler.
+#
+# The ActionScheduler in WooCommerce (and other WordPress subsystems) accumulates complete, failed, and canceled actions.
+#
+# This shell script, run as a cronjob (debugged on Ubuntu GNU/Linux) deletes old actions
+# to keep the wp_actionscheduler_actions table from growing too large.
+# It puts an entry into /var/log/syslog saying how many actions it purged.
+#
+# The following crontab entry will run this purge script each day at 04:01
+#
+# You need to change '/var/www/html/' to the top level directory of your WordPress installation, and take off the
+# leading # comment character when you put this entry into the crontab.
+#
+# 1 4 * * * /var/www/html/wp-content/plugins/fast-woo-order-lookup/scripts/purge-action-scheduler >>/tmp/foo 2>>/tmp/foo
+
+cd `dirname $0`
+cd ../../../..
+echo -n $0 >/tmp/purge-action-scheduler$$
+wp action-scheduler clean --status=complete,failed,canceled --before='60 days ago' --batch-size=1000 --pause=2 | grep deleted | tail -1 >>/tmp/purge-action-scheduler$$
+logger --file /tmp/purge-action-scheduler$$
+rm /tmp/purge-action-scheduler$$

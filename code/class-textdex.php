@@ -103,7 +103,8 @@ TABLE;
 		$start_time = time();
 		/* Give ourselves max_execution_time -10 sec to run, unless max_execution_time is very short. */
 		$max_time  = ini_get( 'max_execution_time' );
-		$safe_time = ( $max_time > 30 ) ? 10 : 2;
+		$max_time  = ( $max_time > 30 ) ? 30 : $max_time;
+		$safe_time = ( $max_time > 30 ) ? 5 : 2;
 		$end_time  = $start_time + $max_time - $safe_time;
 		$end_time  = ( $end_time > $start_time ) ? $end_time : $start_time + 1;
 		set_time_limit( $max_time );
@@ -113,7 +114,7 @@ TABLE;
 		$cust->get_order_custom_field_names();
 		$done          = false;
 		$another_batch = false;
-		while ( ! $done ) {
+		while( ! $done ) {
 			$another_batch = $this->load_next_batch();
 			if ( ! $another_batch ) {
 				$done = true;
@@ -135,7 +136,7 @@ TABLE;
 
 	public function schedule_batch() {
 		if ( $this->have_more_batches() ) {
-			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup' , true);
+			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup', true );
 		}
 	}
 
