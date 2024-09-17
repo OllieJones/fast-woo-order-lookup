@@ -72,13 +72,15 @@ Generating the table seems to take about ten seconds (in the background) for eve
 1. Let the author know by creating an issue at https://github.com/OllieJones/fast-woo-order-lookup/issues
 2. Deactivate, then activate the plugin. This rebuilds the lookup table.
 
-= Even with this plugin installed my site displays individual orders very slowly. What do I do? =
+= What is this wp_fwol table created by the plugin? =
 
-The query to populate the dropdown for custom field names (meta keys) on the order page is very slow if your site has many -- hundreds of thousands of -- orders. Read [this](https://www.plumislandmedia.net/wordpress/performance/woocommerce-key-improvement/#wp_wc_orders_meta) for details.  Version 1.0.0 of this plugin includes a cache to avoid repeating that query.
+This table, named with an abbreviation for "Fast Woo Order Lookup", contains the trigram lookups. It has a terse name to keep queries short. It is dropped automatically if you deactivate the plugin.
 
-You can add a key to work around this problem.
+= My store only has a few hundred orders. Do I need this plugin ? =
 
-`wp db query "ALTER TABLE wp_wc_orders_meta ADD KEY slow_ordermeta_workaround(meta_key)"`
+This plugin addresses database performance problems that only show themselves on stores with many tens of thousands of orders. If your store is smaller than that you probably don't need it.
+
+Wise owners of rapidly growing stores return regularly to examine their site performance. If your site is still small, it's better to wait until you actually need performance-enhancing plugins and other features. Installing them "just in case" is ineffective.
 
 == Installation ==
 
