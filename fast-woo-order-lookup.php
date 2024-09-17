@@ -53,6 +53,12 @@ class FastWooOrderLookup {
 	private $trigram_clause;
 	private $orders_to_update = array();
 
+	public static function declare_hpos_compatible() {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		}
+	}
+
 	public static function woocommerce_changing_order( $order_id, $order ) {
 		$instance                                = self::getInstance();
 		$instance->orders_to_update[ $order_id ] = 1;
@@ -175,8 +181,8 @@ class FastWooOrderLookup {
 
 	/**
 	 * Filter. immediately before metadata search.
-     *
-     * This only works in legacy mode, not HPOS mode.
+	 *
+	 * This only works in legacy mode, not HPOS mode.
 	 *
 	 * @param array $search_fields
 	 *
@@ -195,8 +201,8 @@ class FastWooOrderLookup {
 
 	/**
 	 * Filter. Immediately after metadata search.
-     *
-     * This only works in legacy mode, not HPOS mode.
+	 *
+	 * This only works in legacy mode, not HPOS mode.
 	 *
 	 * @param array $order_ids
 	 * @param string $term
@@ -399,6 +405,8 @@ define( 'FAST_WOO_ORDER_LOOKUP_PLUGIN_URL', plugin_dir_url( FAST_WOO_ORDER_LOOKU
 
 register_activation_hook( __FILE__, 'Fast_Woo_Order_Lookup\activate' );
 register_deactivation_hook( __FILE__, 'Fast_Woo_Order_Lookup\deactivate' );
+
+add_action( 'before_woocommerce_init', array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'declare_hpos_compatible' ) );
 
 /* Don't do anything until WooCommerce does ->load( 'order' ). */
 add_action( 'woocommerce_order_data_store',
