@@ -7,6 +7,8 @@ Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
 Tested up to: 6.6.1
 Requires PHP: 5.6
+WC requires at least: 4.0
+WC tested up to: 9.1.4
 Stable tag: 1.1.1
 Requires Plugins: woocommerce
 License: GPLv2
