@@ -33,7 +33,9 @@ class Textdex {
 			'_shipping_address_index' => 1,
 			'_billing_last_name'      => 1,
 			'_billing_email'          => 1,
-			'_billing_phone'          => 1
+			'_billing_phone'          => 1,
+			'_order_number_formatted' => 1,
+			'_order_number'           => 1
 		);
 
 		$this->option_name = FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status';
@@ -408,13 +410,13 @@ TABLE;
 				FROM (
 				SELECT post_id id, meta_value COLLATE $collation value
 				  FROM $postmeta
-				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone')
+				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone','_order_number','_order_number_formatted')
 				   AND post_id >= %d and post_id < %d
 
 				UNION ALL
 				SELECT order_id id, meta_value COLLATE $collation value
 				  FROM $ordersmeta
-				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index')
+				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_order_number','_order_number_formatted')
 				   AND order_id >= %d and order_id < %d
 
 				UNION ALL

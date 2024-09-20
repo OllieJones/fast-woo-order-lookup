@@ -9,7 +9,7 @@ Tested up to: 6.6.1
 Requires PHP: 5.6
 WC requires at least: 4.0
 WC tested up to: 9.1.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -31,7 +31,7 @@ The orders page itself contains a very slow query (to be fixed in Woocommerce 9.
 <h4>Credits</h4>
 Thanks to Leho Kraav for bringing this problem to my attention.
 
-Thanks to Sebastian Sommer for using early versions of the plugin on a large store.
+Thanks to Sebastian Sommer and Maxime Michaud for using early versions of the plugin on large stores, and to Maxime Michaud for creating the transation into French.
 
 Thanks to Jetbrains for the use of their software development tools, especially [PhpStorm](https://www.jetbrains.com/phpstorm/). It's hard to imagine how a plugin like this one could be developed without PhpStorm's tools for exploring epic code bases like WordPress's.
 
@@ -88,15 +88,11 @@ Follow the usual procedure for installing a plugin from the wordpress.org plugin
 
 == Upgrade Notice ==
 
-A compatibiity issue with MariaDB 10.3 and earlier is fixed.
-
-Initial indexing load now uses longer chunks.
-
-Tnis plugin is now compatible with WooCommerce's updgrades to 9.0.0 and 8.9.3. And, it keeps a cache of custom field names for orders to avoid the very slow load time for order pages.
-
-When you install this upgrade, the plugin repeats the indexing process to add some new fields.
+Support for WooCommerce Sequential Order Numbers Pro. Faster initial indexing. WooCommerce's updgrades to 9.0.0 and 8.9.3. Custom field name cache for orders.
 
 == Changelog ==
+
+= 1.1.2 September 20, 2024 =
 
 = 1.1.1 August 12, 2024 =
 
