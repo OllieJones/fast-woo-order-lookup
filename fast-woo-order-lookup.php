@@ -137,7 +137,7 @@ class FastWooOrderLookup {
 	}
 
 	public function show_status() {
-		if ( ! $this->textdex->is_ready() ) {
+		if ( ! $this->textdex->is_ready( 10 ) ) {
 			load_plugin_textdomain( 'fast-woo-order-lookup', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 			$sa1  = __( 'See the', 'fast-woo-order-lookup' );
 			$sa2  = __( 'Scheduled Actions status page', 'fast-woo-order-lookup' );

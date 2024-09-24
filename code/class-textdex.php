@@ -147,10 +147,10 @@ TABLE;
 	 *
 	 * @return bool true if there are still more batches to process.
 	 */
-	public function have_more_batches() {
+	public function have_more_batches( $fuzz_factor = 0 ) {
 		$textdex_status = $this->get_option();
 
-		return ( $textdex_status['current'] < $textdex_status['last'] );
+		return ( ( $fuzz_factor + $textdex_status['current'] ) < $textdex_status['last'] );
 	}
 
 	public function fraction_complete() {
@@ -214,8 +214,8 @@ TABLE;
 	/**
 	 * @return bool true if the trigram index is ready to use.
 	 */
-	public function is_ready() {
-		return ! $this->have_more_batches();
+	public function is_ready( $fuzz_factor = 10 ) {
+		return ! $this->have_more_batches( $fuzz_factor );
 	}
 
 	public function is_order_meta_key( $meta_key ) {
