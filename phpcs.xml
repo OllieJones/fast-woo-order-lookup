@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<ruleset name="Custom WordPress Standard">
+    <description>Custom WordPress coding standards configuration to exclude non-critical phpcs notices.</description>
+	
+    <arg name="parallel" value="50"/><!-- Enables parallel processing when available for faster results. -->
+	<arg name="extensions" value="php"/><!-- Limit to PHP files -->
+	<arg value="sp"/><!-- Show sniff and progress -->
+	<arg name="colors"/><!-- Show results with colors -->
+	
+	<file>code</file>
+	<file>fast-woo-order-lookup.php</file>
+	<!-- Add more specific exclusions here as needed -->
+    <exclude-pattern>/vendor/*</exclude-pattern>
+	
+	<!-- Rules: Check PHP version compatibility - see https://github.com/PHPCompatibility/PHPCompatibilityWP -->
+	<rule ref="PHPCompatibility"/>
+	<config name="testVersion" value="5.6-"/>
+	<config name="minimum_supported_wp_version" value="5.8"/>
+	
+    <!-- Path to the WordPress Coding Standards -->
+    <rule ref="WordPress">
+	<!-- NEW -->
+	<exclude name="Universal.Arrays.DisallowShortArraySyntax.Found"/>
+	<exclude name="Universal.Operators.DisallowShortTernary.Found"/>
+	<exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound"/>
+	<exclude name="Generic.Functions.FunctionCallArgumentSpacing.TooMuchSpaceAfterComma"/>
+	<exclude name="Generic.PHP.NoSilencedErrors.Discouraged"/>
+	<exclude name="PEAR.Functions.FunctionCallSignature.Indent"/>
+	<exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterCloseBrace"/>
+	<exclude name="Squiz.Commenting.FileComment.Missing"/>
+	<exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>
+	<exclude name="Squiz.PHP.CommentedOutCode.Found"/>
+	<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase" />
+	<exclude name="Generic.Arrays.DisallowShortArraySyntax" />
+	
+    <!-- Exclude rules for inline comment formatting -->
+    <exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+    <!-- Exclude rules for missing comments for classes, functions, parameters -->
+    <exclude name="Squiz.Commenting.ClassComment.Missing"/>
+    <exclude name="Squiz.Commenting.FunctionComment.Missing"/>
+    <exclude name="Squiz.Commenting.FunctionComment.MissingParamComment"/>
+    <exclude name="Squiz.Commenting.FunctionComment.MissingParamTag"/>
+    <exclude name="Generic.Commenting.DocComment.MissingShort"/>
+    <exclude name="Squiz.Commenting.VariableComment.Missing"/>
+    <exclude name="Squiz.Commenting.FileComment.Missing"/>
+    <exclude name="Squiz.Commenting.FunctionComment.ParamCommentFullStop"/>
+    <!-- Ignore the 'Yoda Conditions' notices -->
+    <exclude name="WordPress.PHP.YodaConditions.NotYoda"/>
+    </rule>
+	<rule ref="WordPress.Files.FileName">
+        <properties>
+            <property name="strict_class_file_names" value="false" />
+        </properties>
+    </rule>
+	<rule ref="Generic.Arrays.DisallowLongArraySyntax" />
+    
+    <!-- You can specify more rules or modify existing ones to fit your project's needs -->
+</ruleset>
