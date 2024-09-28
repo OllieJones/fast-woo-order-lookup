@@ -103,7 +103,7 @@ TABLE;
 	public function load_batch() {
 		require_once plugin_dir_path( __FILE__ ) . 'class-custom-fields.php';
 		$start_time = time();
-		/* Give ourselves max_execution_time -10 sec to run, unless max_execution_time is very short. */
+		// Give ourselves max_execution_time -10 sec to run, unless max_execution_time is very short.
 		$max_time  = ini_get( 'max_execution_time' );
 		$max_time  = ( $max_time > 30 ) ? 30 : $max_time;
 		$safe_time = ( $max_time > 30 ) ? 5 : 2;
@@ -296,16 +296,16 @@ TABLE;
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			return $wpdb->prepare( 'SELECT DISTINCT i FROM ' . $this->tablename . ' WHERE t = %s', $trigrams[0] );
 		}
+
 		/*
 		We make this sort of query here.
-		 *
-		 * SELECT a.id FROM
-		 *  (SELECT id FROM t2 WHERE trigram = 'Oli') a
-		 *  JOIN (SELECT id FROM t2 WHERE trigram = 'liv') b ON a.id = b.id
-		 *  JOIN (SELECT id FROM t2 WHERE trigram = 'ive') c ON a.id = c.id
-		 *  JOIN (SELECT id FROM t2 WHERE trigram = 'ver') d ON a.id = d.id
-		 *  UNION ALL SELECT numvalue id  (only if we have a numeric search term)
-		 */
+		* SELECT a.id FROM
+		*  (SELECT id FROM t2 WHERE trigram = 'Oli') a
+		*  JOIN (SELECT id FROM t2 WHERE trigram = 'liv') b ON a.id = b.id
+		*  JOIN (SELECT id FROM t2 WHERE trigram = 'ive') c ON a.id = c.id
+		*  JOIN (SELECT id FROM t2 WHERE trigram = 'ver') d ON a.id = d.id
+		*  UNION ALL SELECT numvalue id  (only if we have a numeric search term)
+		*/
 		$alias_num = 0;
 
 		$query  = 'SELECT a.i FROM ';
@@ -314,12 +314,16 @@ TABLE;
 		$query .= $wpdb->prepare( 'SELECT i FROM ' . $this->tablename . ' WHERE t = %s', array_pop( $trigrams ) );
 		$query .= ') a ';
 
-		while ( count( $trigrams ) > 0 ) {
+		$trigram_count = count( $trigrams );
+
+		while ( $trigram_count > 0 ) {
 			++$alias_num;
 			$query .= 'JOIN (';
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			$query .= $wpdb->prepare( 'SELECT i FROM ' . $this->tablename . ' WHERE t = %s', array_pop( $trigrams ) );
 			$query .= ') ' . $this->alias( $alias_num ) . ' ON a.i=' . $this->alias( $alias_num ) . '.i ';
+			// Update the count after modifying the array
+			$trigram_count = count( $trigrams );
 		}
 
 		return $query;
@@ -371,16 +375,14 @@ TABLE;
 		}
 
 		if ( $this->is_ready() ) {
-			/*
-			Do this all at once to avoid autocommit overhead. */
+			// Do this all at once to avoid autocommit overhead.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( 'BEGIN;' );
 			foreach ( $order_ids as $order_id ) {
-				/*
-				Get rid of old metadata */
+				// Get rid of old metadata
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE i = %d', $order_id ) );
-				/* Retrieve and add the new metadata */
+				// Retrieve and add the new metadata
 				$resultset = $this->get_order_metadata( $order_id );
 				$this->insert_trigrams( $resultset );
 			}

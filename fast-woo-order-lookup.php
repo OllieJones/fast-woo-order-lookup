@@ -60,30 +60,30 @@ class FastWooOrderLookup {
 	}
 
 	public static function woocommerce_changing_order( $order_id, $order ) {
-		$instance                                = self::getInstance();
+		$instance                                = self::get_instance();
 		$instance->orders_to_update[ $order_id ] = 1;
 	}
 
 	public static function woocommerce_deleting_order( $order_id ) {
-		$instance                                = self::getInstance();
+		$instance                                = self::get_instance();
 		$instance->orders_to_update[ $order_id ] = 1;
 	}
 
 	public static function woocommerce_order_object_updated_props( $order, $props ) {
-		$instance                                = self::getInstance();
+		$instance                                = self::get_instance();
 		$order_id                                = $order->get_id();
 		$instance->orders_to_update[ $order_id ] = 1;
 	}
 
 	public static function update_post_meta( $meta_id, $object_id, $meta_key, $_meta_value ) {
-		$instance = self::getInstance();
+		$instance = self::get_instance();
 		if ( $instance->textdex->is_order_meta_key( $meta_key ) ) {
 			$instance->orders_to_update[ $object_id ] = 1;
 		}
 	}
 
 	public static function textdex_batch_action() {
-		$instance = self::getInstance();
+		$instance = self::get_instance();
 		$instance->textdex->load_batch();
 	}
 
@@ -96,7 +96,7 @@ class FastWooOrderLookup {
 	 */
 	public static function woocommerce_order_data_store( $store ) {
 		if ( 'WC_Order_Data_Store_CPT' === $store || 'WCS_Subscription_Data_Store_CPT' === $store ) {
-			self::getInstance();
+			self::get_instance();
 		}
 
 		return $store;
@@ -106,7 +106,7 @@ class FastWooOrderLookup {
 	 *
 	 * @return FastWooOrderLookup
 	 */
-	public static function getInstance() {
+	public static function get_instance() {
 		if ( self::$instance == null ) {
 			self::$instance = new FastWooOrderLookup();
 		}
@@ -244,16 +244,16 @@ class FastWooOrderLookup {
 			$this->term           = $splits[0];
 			$this->trigram_clause = $this->textdex->trigram_clause( $this->term );
 		}
-		$newQuery = $query;
-		if ( str_contains( $newQuery, 'woocommerce_order_items as order_item' ) ) {
-			$newQuery = str_replace( 'WHERE order_item_name LIKE', 'WHERE order_id IN (' . $this->trigram_clause . ') AND order_item_name LIKE', $newQuery );
-		} elseif ( str_contains( $newQuery, 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os' ) ) {
+		$new_query = $query;
+		if ( str_contains( $new_query, 'woocommerce_order_items as order_item' ) ) {
+			$new_query = str_replace( 'WHERE order_item_name LIKE', 'WHERE order_id IN (' . $this->trigram_clause . ') AND order_item_name LIKE', $new_query );
+		} elseif ( str_contains( $new_query, 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os' ) ) {
 			/* empty, intentionally */
 		} else {
-			$newQuery = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $newQuery );
+			$new_query = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $new_query );
 		}
 
-		return $newQuery;
+		return $new_query;
 	}
 
 	/**
