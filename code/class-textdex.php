@@ -402,30 +402,31 @@ TABLE;
 		$orders     = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 		$addresses  = $wpdb->prefix . 'wc_order_addresses';
+		$charset    = $wpdb->charset;
 		$collation  = $wpdb->collate;
 
 
 		$query = <<<QUERY
 				SELECT id, value
 				FROM (
-				SELECT post_id id, meta_value COLLATE $collation value
+				SELECT post_id id, CONVERT( meta_value USING $charset) COLLATE $collation value
 				  FROM $postmeta
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone','_order_number','_order_number_formatted')
 				   AND post_id >= %d and post_id < %d
 
 				UNION ALL
-				SELECT order_id id, meta_value COLLATE $collation value
+				SELECT order_id id, CONVERT( meta_value USING $charset) COLLATE $collation value
 				  FROM $ordersmeta
 				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_order_number','_order_number_formatted')
 				   AND order_id >= %d and order_id < %d
 
 				UNION ALL
-				SELECT order_id id, order_item_name COLLATE $collation value
+				SELECT order_id id, CONVERT( order_item_name USING $charset) COLLATE $collation value
 				  FROM $orderitems
 				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
-				SELECT id, billing_email COLLATE $collation value
+				SELECT id, CONVERT( billing_email USING $charset) COLLATE $collation value
 				  FROM $orders
 				 WHERE id >= %d and id < %d
 				
@@ -435,27 +436,27 @@ TABLE;
 				 WHERE id >= %d and id < %d
 				
 				UNION ALL
-				SELECT id, transaction_id COLLATE $collation value
+				SELECT id, CONVERT( transaction_id USING $charset) COLLATE $collation value
 				  FROM $orders
 				 WHERE id >= %d and id < %d AND transaction_id IS NOT NULL
 				
 				UNION ALL
-				SELECT order_id id, CONCAT_WS (' ', first_name, last_name, company, address_1, address_2, city, state, postcode, country) COLLATE $collation value
+				SELECT order_id id, CONVERT( CONCAT_WS (' ', first_name, last_name, company, address_1, address_2, city, state, postcode, country) USING $charset) COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
-				SELECT order_id id, email COLLATE $collation value
+				SELECT order_id id, CONVERT( email USING $charset) COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= %d and order_id < %d
 
 				UNION ALL
-				SELECT order_id id, phone COLLATE $collation value
+				SELECT order_id id, CONVERT( phone USING $charset) COLLATE $collation value
 				  FROM $addresses
 				 WHERE order_id >= %d and order_id < %d
 				) a
 			WHERE value IS NOT NULL
-			ORDER BY id;
+			ORDER BY id, value;
 QUERY;
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$query = $wpdb->prepare( $query,

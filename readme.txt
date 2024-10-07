@@ -5,7 +5,7 @@ Donate link:
 Contributors:  OllieJones
 Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
-Tested up to: 6.6.1
+Tested up to: 6.7
 Requires PHP: 5.6
 WC requires at least: 4.0
 WC tested up to: 9.1.4
@@ -92,7 +92,9 @@ Support for WooCommerce Sequential Order Numbers Pro. Faster initial indexing. W
 
 == Changelog ==
 
-= 1.1.2 September 20, 2024 =
+= 1.1.2 October 7, 2024 =
+
+Handle tables and colums with character sets other than $wpdb->charset.
 
 = 1.1.1 August 12, 2024 =
 
@@ -101,67 +103,3 @@ Support for WooCommerce Sequential Order Numbers Pro. Faster initial indexing. W
 = 1.1.0 August 11, 2024 =
 
 * Some MariaDB / MySQL versions implicitly cast integers to latin1 strings causing problems. Explicit casting fixes the issue.
-
-= 1.0.2 August 5, 2024 =
-
-* Load the meta_names cache during activation; don't let it expire.
-
-= 1.0.0 July 3, 2024 =
-
-* Allow searching on order number and transaction id fields.
-* Keep a cache of the meta_names for order custom fields to avoid repeating a very slow query.
-
-= 0.5.0 July 1, 2024 =
-
-* Improved compatibility with WooCommerce 9.0.0+.
-
-* Add advice to readme.txt suggesting a new key on `wp_wc_orders_meta` for very large sites.
-
-= 0.4.1 June 15, 2024 =
-
-* Make the patch for slow order-page viewing compatible with WooCommerce 8.9.3.
-* Fix a presentation defect in the table-generation notify message.
-
-= 0.4.0 May 10, 2024 =
-
-Patch the query to look up distinct public meta_key values.
-
-= 0.3.0 April 25, 2024 =
-
-Use JOINs rather than IN to get better performance. Shorten the table and column names.
-
-= 0.2.6 April 15, 2024 =
-
-Notice, localization, phpcs:ignore
-
-= 0.2.5 April 13, 2024 =
-
-Background loading. Correct handling of HPOS variant queries (from the dropdown).
-
-= 0.2.4 April 6, 2024 =
-
-Ingest wp_wc_order_addresses info when creating trigram table, and handle pre-HPOS sites correctly.
-
-= 0.2.2 April 1, 2024 =
-
-Perform trigram inserts in batches.
-
-= 0.2.1 March 26, 2024 =
-
-Keep up with changes to orders.
-
-= 0.1.4 March 23, 2024
-
-Use trigrams, support both traditional and HPOS orders.
-
-= 0.1.3 March 21, 2024
-
-Build a text index table and use it.
-
-= 0.1.2 November 24, 2023
-
-Add support for speeding Subscriptions searches.
-
-= 0.1.1 November 19, 2023
-
-Birthday of Fast Woo Order Lookup. And, the birthday (in 1988) of the author's daughter Catharine.
