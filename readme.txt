@@ -9,7 +9,7 @@ Tested up to: 6.7
 Requires PHP: 5.6
 WC requires at least: 4.0
 WC tested up to: 9.1.4
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -92,7 +92,7 @@ Support for WooCommerce Sequential Order Numbers Pro. Faster initial indexing. W
 
 == Changelog ==
 
-= 1.1.2 October 7, 2024 =
+= 1.1.3 October 7, 2024 =
 
 Handle tables and colums with character sets other than $wpdb->charset.
 
