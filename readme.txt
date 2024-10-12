@@ -9,7 +9,7 @@ Tested up to: 6.7
 Requires PHP: 5.6
 WC requires at least: 4.0
 WC tested up to: 9.1.4
-Stable tag: 1.1.3
+Stable tag: 1.1.4-alpha-28
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup

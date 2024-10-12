@@ -61,17 +61,18 @@ class Custom_Fields {
 				add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
 			}
 			$limit = apply_filters( 'postmeta_form_limit', 30 );
-			$keys  = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
 
-			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys );
+			$orders_meta = wc_get_container()->get( OrdersTableDataStoreMeta::class );
+			if ( method_exists( $orders_meta, 'get_meta_keys ' )) {
+				$keys = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
+				set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys );
+			} else {
+				$keys = array();
+			}
+
 		}
 
 		return $keys;
-
 	}
-
-
-
-
 }
 
