@@ -35,12 +35,12 @@ class Custom_Fields {
 			/* we can stop looking at queries as soon as we find ours. */
 			$query           = str_replace( $detect890, $replace, $query );
 			$this->filtering = false;
-			remove_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
-		} else if ( false !== strstr( $query, $detect893 ) ) {
+			remove_filter( 'query', [ $this, 'postmeta_form_keys_query' ], 1 );
+		} elseif ( false !== strstr( $query, $detect893 ) ) {
 			/* we can stop looking at queries as soon as we find ours. */
 			$query           = str_replace( $detect893, $replace, $query );
 			$this->filtering = false;
-			remove_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+			remove_filter( 'query', [ $this, 'postmeta_form_keys_query' ], 1 );
 		}
 
 		return $query;
@@ -48,6 +48,7 @@ class Custom_Fields {
 
 	/**
 	 * Retrieve the
+	 *
 	 * @return array
 	 */
 	public function get_order_custom_field_names() {
@@ -58,7 +59,7 @@ class Custom_Fields {
 			if ( @version_compare( WOOCOMMERCE_VERSION, '9.0.0', '<' ) ) {
 				/* we are in WooCommerce < 9.0.0 someplace, mung the queries to come */
 				$this->filtering = true;
-				add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+				add_filter( 'query', [ $this, 'postmeta_form_keys_query' ], 1 );
 			}
 			$limit = apply_filters( 'postmeta_form_limit', 30 );
 			$keys  = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
@@ -67,11 +68,5 @@ class Custom_Fields {
 		}
 
 		return $keys;
-
 	}
-
-
-
-
 }
-

@@ -52,7 +52,7 @@ class FastWooOrderLookup {
 
 	private $term;
 	private $trigram_clause;
-	private $orders_to_update = array();
+	private $orders_to_update = [];
 
 	public static function declare_hpos_compatible() {
 		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
@@ -61,30 +61,30 @@ class FastWooOrderLookup {
 	}
 
 	public static function woocommerce_changing_order( $order_id, $order ) {
-		$instance                                = self::getInstance();
+		$instance                                = self::get_instance();
 		$instance->orders_to_update[ $order_id ] = 1;
 	}
 
 	public static function woocommerce_deleting_order( $order_id ) {
-		$instance                                = self::getInstance();
+		$instance                                = self::get_instance();
 		$instance->orders_to_update[ $order_id ] = 1;
 	}
 
 	public static function woocommerce_order_object_updated_props( $order, $props ) {
-		$instance                                = self::getInstance();
+		$instance                                = self::get_instance();
 		$order_id                                = $order->get_id();
 		$instance->orders_to_update[ $order_id ] = 1;
 	}
 
 	public static function update_post_meta( $meta_id, $object_id, $meta_key, $_meta_value ) {
-		$instance = self::getInstance();
+		$instance = self::get_instance();
 		if ( $instance->textdex->is_order_meta_key( $meta_key ) ) {
 			$instance->orders_to_update[ $object_id ] = 1;
 		}
 	}
 
 	public static function textdex_batch_action() {
-		$instance = self::getInstance();
+		$instance = self::get_instance();
 		$instance->textdex->load_batch();
 	}
 
@@ -97,7 +97,7 @@ class FastWooOrderLookup {
 	 */
 	public static function woocommerce_order_data_store( $store ) {
 		if ( 'WC_Order_Data_Store_CPT' === $store || 'WCS_Subscription_Data_Store_CPT' === $store ) {
-			self::getInstance();
+			self::get_instance();
 		}
 
 		return $store;
@@ -107,7 +107,7 @@ class FastWooOrderLookup {
 	 *
 	 * @return FastWooOrderLookup
 	 */
-	public static function getInstance() {
+	public static function get_instance() {
 		if ( self::$instance == null ) {
 			self::$instance = new FastWooOrderLookup();
 		}
@@ -120,21 +120,21 @@ class FastWooOrderLookup {
 	 */
 	private function __construct() {
 		/* Query manipulation */
-		add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ) );
-		add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ) );
-		add_filter( 'woocommerce_shop_order_search_results', array( $this, 'filter_search_results' ), 10, 3 );
-		add_filter( 'woocommerce_shop_subscription_search_results', array( $this, 'filter_search_results' ), 10, 3 );
-		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ) );
-		add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
-		add_filter( 'postmeta_form_keys', array( $this, 'postmeta_get_order_custom_field_names' ), 10, 2 );
+		add_filter( 'woocommerce_shop_order_search_fields', [ $this, 'filter_search_fields' ] );
+		add_filter( 'woocommerce_shop_subscription_search_fields', [ $this, 'filter_search_fields' ] );
+		add_filter( 'woocommerce_shop_order_search_results', [ $this, 'filter_search_results' ], 10, 3 );
+		add_filter( 'woocommerce_shop_subscription_search_results', [ $this, 'filter_search_results' ], 10, 3 );
+		add_filter( 'woocommerce_order_query_args', [ $this, 'woocommerce_order_query_args' ] );
+		add_filter( 'woocommerce_order_query', [ $this, 'woocommerce_order_query' ], 10, 2 );
+		add_filter( 'postmeta_form_keys', [ $this, 'postmeta_get_order_custom_field_names' ], 10, 2 );
 
-		require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
+		require_once plugin_dir_path( __FILE__ ) . 'code/class-textdex.php';
 		$this->textdex = new Textdex();
 		$this->textdex->activate();
 		$this->textdex->load_textdex();
 
-		add_action( 'admin_notices', array( $this, 'show_status' ), 10, 0 );
-		add_action( 'shutdown', array( $this, 'update_textdex' ), 1, 0 );
+		add_action( 'admin_notices', [ $this, 'show_status' ], 10, 0 );
+		add_action( 'shutdown', [ $this, 'update_textdex' ], 1, 0 );
 	}
 
 	public function show_status() {
@@ -155,14 +155,14 @@ class FastWooOrderLookup {
 				$ms2 = sprintf( $ms2, $percent );
 			}
 			?>
-            <div class="notice notice-info">
-                <p>
+			<div class="notice notice-info">
+				<p>
 					<?php echo esc_html( $ms1 ); ?>
 					<?php echo esc_html( $ms2 ); ?>
 					<?php echo esc_html( $sa1 ); ?>
-                    <a href="admin.php?page=wc-status&tab=action-scheduler&s=fast_woo_order_lookup_textdex_action&status=pending"><?php echo esc_html( $sa2 ); ?></a>
+					<a href="admin.php?page=wc-status&tab=action-scheduler&s=fast_woo_order_lookup_textdex_action&status=pending"><?php echo esc_html( $sa2 ); ?></a>
 					<?php echo esc_html( $sa3 ); ?>
-                </p></div>
+				</p></div>
 			<?php
 		}
 	}
@@ -195,7 +195,7 @@ class FastWooOrderLookup {
 		}
 		/* Hook to mung the queries. */
 		$this->filtering = true;
-		add_filter( 'query', array( $this, 'standard_query' ), 1 );
+		add_filter( 'query', [ $this, 'standard_query' ], 1 );
 
 		return $search_fields;
 	}
@@ -205,9 +205,9 @@ class FastWooOrderLookup {
 	 *
 	 * This only works in legacy mode, not HPOS mode.
 	 *
-	 * @param array $order_ids
+	 * @param array  $order_ids
 	 * @param string $term
-	 * @param array $search_fields
+	 * @param array  $search_fields
 	 *
 	 * @return array
 	 */
@@ -215,7 +215,7 @@ class FastWooOrderLookup {
 
 		if ( $this->filtering ) {
 			/* Discontinue filtering queries after the metadata search */
-			remove_filter( 'query', array( $this, 'standard_query' ), 1 );
+			remove_filter( 'query', [ $this, 'standard_query' ], 1 );
 			$this->filtering = false;
 		}
 
@@ -245,16 +245,16 @@ class FastWooOrderLookup {
 			$this->term           = $splits[0];
 			$this->trigram_clause = $this->textdex->trigram_clause( $this->term );
 		}
-		$newQuery = $query;
-		if ( str_contains( $newQuery, 'woocommerce_order_items as order_item' ) ) {
-			$newQuery = str_replace( 'WHERE order_item_name LIKE', 'WHERE order_id IN (' . $this->trigram_clause . ') AND order_item_name LIKE', $newQuery );
-		} else if ( str_contains( $newQuery, 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os' ) ) {
+		$new_query = $query;
+		if ( str_contains( $new_query, 'woocommerce_order_items as order_item' ) ) {
+			$new_query = str_replace( 'WHERE order_item_name LIKE', 'WHERE order_id IN (' . $this->trigram_clause . ') AND order_item_name LIKE', $new_query );
+		} elseif ( str_contains( $new_query, 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os' ) ) {
 			/* empty, intentionally */
 		} else {
-			$newQuery = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $newQuery );
+			$new_query = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $new_query );
 		}
 
-		return $newQuery;
+		return $new_query;
 	}
 
 	/**
@@ -275,7 +275,7 @@ class FastWooOrderLookup {
 
 			/* Hook to mung the queries. */
 			$this->filtering = true;
-			add_filter( 'query', array( $this, 'hpos_query' ), 1 );
+			add_filter( 'query', [ $this, 'hpos_query' ], 1 );
 		}
 
 		return $args;
@@ -294,7 +294,7 @@ class FastWooOrderLookup {
 	public function woocommerce_order_query( $results, $args ) {
 		if ( $this->filtering ) {
 			/* Discontinue filtering queries after the search */
-			remove_filter( 'query', array( $this, 'hpos_query' ), 1 );
+			remove_filter( 'query', [ $this, 'hpos_query' ], 1 );
 			$this->filtering = false;
 		}
 
@@ -324,10 +324,10 @@ class FastWooOrderLookup {
 			return $query;
 		}
 		if ( str_contains( $query, "$orderitems AS search_query_items ON search_query_items.order_id = $orders.id WHERE 1=1 AND" ) ||
-		     str_contains( $query, "SELECT $orders.id FROM $orders  WHERE 1=1 AND" ) ||
-		     str_contains( $query, "SELECT COUNT(DISTINCT $orders.id) FROM  $orders  WHERE 1=1 AND" )
+			str_contains( $query, "SELECT $orders.id FROM $orders  WHERE 1=1 AND" ) ||
+			str_contains( $query, "SELECT COUNT(DISTINCT $orders.id) FROM  $orders  WHERE 1=1 AND" )
 		) {
-			return str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ") AND ", $query );
+			return str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ') AND ', $query );
 		}
 
 		return $query;
@@ -340,7 +340,7 @@ class FastWooOrderLookup {
 	 *
 	 *   https://github.com/woocommerce/woocommerce/issues/47212
 	 *
-	 * @param array|null $keys
+	 * @param array|null                                   $keys
 	 * @param Automattic\WooCommerce\Admin\Overrides\Order $order
 	 *
 	 * @return array|null
@@ -350,7 +350,7 @@ class FastWooOrderLookup {
 			return $keys;
 		}
 
-		require_once( plugin_dir_path( __FILE__ ) . 'code/class-custom-fields.php' );
+		require_once plugin_dir_path( __FILE__ ) . 'code/class-custom-fields.php';
 		$cust = new Custom_Fields();
 
 		return $cust->get_order_custom_field_names();
@@ -379,17 +379,16 @@ class FastWooOrderLookup {
 			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys );
 		}
 	}
-
 }
 
 // Plugin name
-const FAST_WOO_ORDER_LOOKUP_NAME          = 'Fast Woo Order Lookup';
+const FAST_WOO_ORDER_LOOKUP_NAME = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.0.1';
+const FAST_WOO_ORDER_LOOKUP_VERSION = '1.0.1';
 
 // Plugin Root File
-const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE   = __FILE__;
+const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE = __FILE__;
 
 // Plugin base
 define( 'FAST_WOO_ORDER_LOOKUP_PLUGIN_BASE', plugin_basename( FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE ) );
@@ -407,53 +406,79 @@ define( 'FAST_WOO_ORDER_LOOKUP_PLUGIN_URL', plugin_dir_url( FAST_WOO_ORDER_LOOKU
 register_activation_hook( __FILE__, 'Fast_Woo_Order_Lookup\activate' );
 register_deactivation_hook( __FILE__, 'Fast_Woo_Order_Lookup\deactivate' );
 
-add_action( 'before_woocommerce_init', array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'declare_hpos_compatible' ) );
+add_action( 'before_woocommerce_init', [ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'declare_hpos_compatible' ] );
 
 /* Don't do anything until WooCommerce does ->load( 'order' ). */
-add_action( 'woocommerce_order_data_store',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_data_store' ) );
+add_action(
+	'woocommerce_order_data_store',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_data_store' ]
+	);
 
 /* Hook anything that changes an order object */
-add_action( 'woocommerce_new_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_changing_order' ), 10, 2 );
-add_action( 'woocommerce_update_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_changing_order' ), 10, 2 );
-add_action( 'woocommerce_order_object_updated_props',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_object_updated_props' ), 10, 2 );
+add_action(
+	'woocommerce_new_order',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_changing_order' ],
+	10,
+	2
+	);
+add_action(
+	'woocommerce_update_order',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_changing_order' ],
+	10,
+	2
+	);
+add_action(
+	'woocommerce_order_object_updated_props',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_object_updated_props' ],
+	10,
+	2
+	);
 /* Hook changes to order status. */
-add_action( 'woocommerce_delete_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
-add_action( 'woocommerce_trash_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
-add_action( 'woocommerce_untrash_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
-add_action( 'woocommerce_cancelled_order',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ) );
-add_action( 'update_post_meta',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'update_post_meta' ), 10, 4 );
+add_action(
+	'woocommerce_delete_order',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ]
+	);
+add_action(
+	'woocommerce_trash_order',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ]
+	);
+add_action(
+	'woocommerce_untrash_order',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ]
+	);
+add_action(
+	'woocommerce_cancelled_order',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_deleting_order' ]
+	);
+add_action(
+	'update_post_meta',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'update_post_meta' ],
+	10,
+	4
+	);
 
 /* ActionScheduler action for loading textdex. */
-add_action( 'fast_woo_order_lookup_textdex_action',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'textdex_batch_action' ) );
+add_action(
+	'fast_woo_order_lookup_textdex_action',
+	[ 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'textdex_batch_action' ]
+	);
 
 function activate() {
 	register_uninstall_hook( __FILE__, 'Fast_Woo_Order_Lookup\uninstall' );
-	require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
+	require_once plugin_dir_path( __FILE__ ) . 'code/class-textdex.php';
 	$textdex = new Textdex();
 	$textdex->activate();
 	$textdex->get_order_id_range();
 	$textdex->load_textdex();
-
 }
 
 function deactivate() {
 
-	require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
+	require_once plugin_dir_path( __FILE__ ) . 'code/class-textdex.php';
 	$textdex = new Textdex();
 	$textdex->deactivate();
 	delete_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
 }
 
 function uninstall() {
-
 }

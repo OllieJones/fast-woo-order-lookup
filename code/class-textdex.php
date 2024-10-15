@@ -21,22 +21,22 @@ class Textdex {
 	private $batch_size = 200;
 
 	private $attempted_inserts = 0;
-	private $actual_inserts = 0;
+	private $actual_inserts    = 0;
 
 	private $alias_chars = 'abcdefghijklmnopqrstuvwxyz';
 
 	public function __construct() {
 		global $wpdb;
 		$this->tablename            = $wpdb->prefix . 'fwol';
-		$this->meta_keys_to_monitor = array(
+		$this->meta_keys_to_monitor = [
 			'_billing_address_index'  => 1,
 			'_shipping_address_index' => 1,
 			'_billing_last_name'      => 1,
 			'_billing_email'          => 1,
 			'_billing_phone'          => 1,
 			'_order_number_formatted' => 1,
-			'_order_number'           => 1
-		);
+			'_order_number'           => 1,
+		];
 
 		$this->option_name = FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status';
 	}
@@ -70,7 +70,7 @@ TABLE;
 					$wpdb->bail( 'Table creation failure ' );
 				}
 			}
-			unset ( $textdex_status['new'] );
+			unset( $textdex_status['new'] );
 			$this->update_option( $textdex_status );
 		}
 		$old_version = array_key_exists( 'version', $textdex_status ) ? $textdex_status['version'] : FAST_WOO_ORDER_LOOKUP_VERSION;
@@ -101,9 +101,9 @@ TABLE;
 	 * @return void
 	 */
 	public function load_batch() {
-		require_once( plugin_dir_path( __FILE__ ) . 'class-custom-fields.php' );
+		require_once plugin_dir_path( __FILE__ ) . 'class-custom-fields.php';
 		$start_time = time();
-		/* Give ourselves max_execution_time -10 sec to run, unless max_execution_time is very short. */
+		// Give ourselves max_execution_time -10 sec to run, unless max_execution_time is very short.
 		$max_time  = ini_get( 'max_execution_time' );
 		$max_time  = ( $max_time > 30 ) ? 30 : $max_time;
 		$safe_time = ( $max_time > 30 ) ? 5 : 2;
@@ -116,7 +116,7 @@ TABLE;
 		$cust->get_order_custom_field_names();
 		$done          = false;
 		$another_batch = false;
-		while( ! $done ) {
+		while ( ! $done ) {
 			$another_batch = $this->load_next_batch();
 			if ( ! $another_batch ) {
 				$done = true;
@@ -133,12 +133,11 @@ TABLE;
 		if ( $another_batch ) {
 			$this->schedule_batch();
 		}
-
 	}
 
 	public function schedule_batch() {
 		if ( $this->have_more_batches() ) {
-			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup', true );
+			as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', [], 'fast_woo_order_lookup', true );
 		}
 	}
 
@@ -163,7 +162,7 @@ TABLE;
 		}
 
 		$result = 1.0 - ( ( 0.0 + $textdex_status['last'] - $textdex_status['current'] )
-		                  / $denominator );
+							/ $denominator );
 		if ( $result < 0.0 ) {
 			$result = 0.0;
 		}
@@ -193,16 +192,16 @@ TABLE;
 		$wpdb->query( 'BEGIN;' );
 
 		$resultset = $this->get_order_metadata( $first, $last );
-		$trigrams  = array();
+		$trigrams  = [];
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
 			$trigrams[ $wpdb->prepare( '(%s,%d)', $trigram[0], $trigram[1] ) ] = 1;
 			if ( count( $trigrams ) >= $trigram_count ) {
 				$this->do_insert_statement( $trigrams );
-				$trigrams = array();
+				$trigrams = [];
 			}
 		}
 		$this->do_insert_statement( $trigrams );
-		unset ( $resultset, $trigrams );
+		unset( $resultset, $trigrams );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( 'COMMIT;' );
 		$textdex_status['current'] = $last;
@@ -226,7 +225,12 @@ TABLE;
 	private function get_trigrams( $resultset ) {
 
 		if ( is_string( $resultset ) ) {
-			$resultset = array( (object) array( 'id' => 1, 'value' => $resultset ) );
+			$resultset = [
+				(object) [
+					'id'    => 1,
+					'value' => $resultset,
+				],
+			];
 		}
 		foreach ( $resultset as $row ) {
 			$id    = $row->id;
@@ -243,15 +247,15 @@ TABLE;
 			$len   = mb_strlen( $value );
 			if ( $len <= 0 ) {
 				continue;
-			} else if ( 1 === $len ) {
+			} elseif ( 1 === $len ) {
 				$value .= '  ';
-			} else if ( 2 === $len ) {
+			} elseif ( 2 === $len ) {
 				$value .= ' ';
 			}
 			$len = mb_strlen( $value ) - 2;
 			if ( $len > 0 ) {
-				for ( $i = 0; $i < $len; $i ++ ) {
-					yield array( mb_substr( $value, $i, 3 ), $id );
+				for ( $i = 0; $i < $len; $i++ ) {
+					yield [ mb_substr( $value, $i, 3 ), $id ];
 				}
 			}
 		}
@@ -274,7 +278,8 @@ TABLE;
 
 		/* Short search terms */
 		if ( mb_strlen( $value ) < 3 ) {
-			/* Reviewer note: The secure escaping of LIKE terms in
+			/*
+			Reviewer note: The secure escaping of LIKE terms in
 			 * $wpdb->esc_like() and $wpdb->prepare() is handled at a
 			 * higher level than the `query` filter and
 			 * so is not appropriate here. Hence esc_sql().
@@ -282,7 +287,7 @@ TABLE;
 			return 'SELECT DISTINCT i FROM ' . $this->tablename . ' WHERE t LIKE ' . "'" . esc_sql( $value ) . "%'";
 		}
 		/* Normal search terms */
-		$trigrams = array();
+		$trigrams = [];
 		foreach ( $this->get_trigrams( $value ) as $item ) {
 			$trigrams[] = $item[0];
 		}
@@ -291,30 +296,34 @@ TABLE;
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			return $wpdb->prepare( 'SELECT DISTINCT i FROM ' . $this->tablename . ' WHERE t = %s', $trigrams[0] );
 		}
-		/* We make this sort of query here.
-		 *
-		 * SELECT a.id FROM
-		 *	(SELECT id FROM t2 WHERE trigram = 'Oli') a
-		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'liv') b ON a.id = b.id
-		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'ive') c ON a.id = c.id
-		 *	JOIN (SELECT id FROM t2 WHERE trigram = 'ver') d ON a.id = d.id
-		 *  UNION ALL SELECT numvalue id  (only if we have a numeric search term)
-		 */
+
+		/*
+		We make this sort of query here.
+		* SELECT a.id FROM
+		*  (SELECT id FROM t2 WHERE trigram = 'Oli') a
+		*  JOIN (SELECT id FROM t2 WHERE trigram = 'liv') b ON a.id = b.id
+		*  JOIN (SELECT id FROM t2 WHERE trigram = 'ive') c ON a.id = c.id
+		*  JOIN (SELECT id FROM t2 WHERE trigram = 'ver') d ON a.id = d.id
+		*  UNION ALL SELECT numvalue id  (only if we have a numeric search term)
+		*/
 		$alias_num = 0;
 
-		$query = 'SELECT a.i FROM ';
+		$query  = 'SELECT a.i FROM ';
 		$query .= '(';
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$query .= $wpdb->prepare( 'SELECT i FROM ' . $this->tablename . ' WHERE t = %s', array_pop( $trigrams ) );
 		$query .= ') a ';
 
+		$trigram_count = count( $trigrams );
 
-		while( count( $trigrams ) > 0 ) {
-			$alias_num ++;
+		while ( $trigram_count > 0 ) {
+			++$alias_num;
 			$query .= 'JOIN (';
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			$query .= $wpdb->prepare( 'SELECT i FROM ' . $this->tablename . ' WHERE t = %s', array_pop( $trigrams ) );
 			$query .= ') ' . $this->alias( $alias_num ) . ' ON a.i=' . $this->alias( $alias_num ) . '.i ';
+			// Update the count after modifying the array
+			$trigram_count = count( $trigrams );
 		}
 
 		return $query;
@@ -330,7 +339,6 @@ TABLE;
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$wpdb->query( "DROP TABLE $this->tablename;" );
 		delete_option( $this->option_name );
-
 	}
 
 	/**
@@ -367,14 +375,14 @@ TABLE;
 		}
 
 		if ( $this->is_ready() ) {
-			/* Do this all at once to avoid autocommit overhead. */
+			// Do this all at once to avoid autocommit overhead.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( 'BEGIN;' );
 			foreach ( $order_ids as $order_id ) {
-				/* Get rid of old metadata */
+				// Get rid of old metadata
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE i = %d', $order_id ) );
-				/* Retrieve and add the new metadata */
+				// Retrieve and add the new metadata
 				$resultset = $this->get_order_metadata( $order_id );
 				$this->insert_trigrams( $resultset );
 			}
@@ -404,7 +412,6 @@ TABLE;
 		$addresses  = $wpdb->prefix . 'wc_order_addresses';
 		$charset    = $wpdb->charset;
 		$collation  = $wpdb->collate;
-
 
 		$query = <<<QUERY
 				SELECT id, value
@@ -459,8 +466,9 @@ TABLE;
 			ORDER BY id, value;
 QUERY;
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$query = $wpdb->prepare( $query,
-			array(
+		$query = $wpdb->prepare(
+			$query,
+			[
 				$first,
 				$last,
 				$first,
@@ -478,8 +486,9 @@ QUERY;
 				$first,
 				$last,
 				$first,
-				$last
-			) );
+				$last,
+			]
+			);
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$resultset = $wpdb->get_results( $query );
 		if ( false === $resultset ) {
@@ -516,15 +525,17 @@ QUERY;
 	 * @return false|mixed|null
 	 */
 	private function get_option() {
-		return get_option( $this->option_name,
-			array(
+		return get_option(
+			$this->option_name,
+			[
 				'new'           => true,
 				'current'       => 0,
 				'batch'         => $this->batch_size,
 				'trigram_batch' => $this->trigram_batch_size,
 				'last'          => - 1,
-				'version'       => FAST_WOO_ORDER_LOOKUP_VERSION
-			) );
+				'version'       => FAST_WOO_ORDER_LOOKUP_VERSION,
+			]
+			);
 	}
 
 	/**
@@ -549,7 +560,7 @@ QUERY;
 			return;
 		}
 		$query = "INSERT IGNORE INTO $this->tablename (t, i) VALUES "
-		         . implode( ',', array_keys( $trigrams ) );
+				. implode( ',', array_keys( $trigrams ) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $query );
 		if ( false === $result ) {
@@ -636,4 +647,3 @@ QUERY;
 		return version_compare( $version1, $version2, '<' );
 	}
 }
-

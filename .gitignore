@@ -3,4 +3,5 @@
 *~
 **/hidden-test-treeshake/
 
-/vendor/
+/vendor/*
+composer.lock
