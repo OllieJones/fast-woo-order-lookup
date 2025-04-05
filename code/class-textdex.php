@@ -40,6 +40,9 @@ class Textdex {
 		);
 
 		$this->option_name = FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status';
+
+		/* Show any indexing errors on Site Health -> info */
+		add_filter( 'debug_information', array( $this, 'debug_information' ) );
 	}
 
 	/**
@@ -508,6 +511,51 @@ QUERY;
 		$msg []  = get_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME );
 		$message = substr( implode( PHP_EOL, array_filter( $msg ) ), 0, 16384 );
 		set_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME, $message, WEEK_IN_SECONDS );
+	}
+
+	/**
+	 * Add a stanza to the debug information shown on the Tools -> Site Health -> Info screen.
+	 *
+	 * @param array $info Associative array of items to show.
+	 *
+	 * See class-wp-debug-data:75
+	 *
+	 * @return array
+	 */
+	public function debug_information( $info ) {
+
+		$error = get_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME );
+		if ( $error && is_string( $error ) ) {
+			$fields                         = array(
+				'explanation' => array(
+					'label'   => __( 'Explanation', 'fast-woo-oroder-lookup' ),
+					'value'   => __( 'Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic.', 'fast-woo-oroder-lookup' ),
+					'debug'   => '',
+					'private' => true,
+				),
+				'request' => array(
+					'label'   => __( 'Request', 'fast-woo-oroder-lookup' ),
+					'value'   => __( 'Please create a support topic at', 'fast-woo-oroder-lookup' ) .' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
+					__( 'Click [Copy Site Info To Clipboard] then paste your site info into the topic.', 'fast-woo-oroder-lookup' ),
+					'debug' => 		 __( 'Please create a support topic at', 'fast-woo-oroder-lookup' ) .' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
+					__( 'and paste this site info (all of it please) into the topic. We will take a look.', 'fast-woo-oroder-lookup' ),
+
+				),
+				'errors' => array(
+					'label' => __( 'Index Creation Errors', 'fast-woo-oroder-lookup' ),
+					'value' => $error,
+					'debug' => $error,
+				)
+			);
+			$item                           = array(
+				'label'  => __( 'Fast Woo Order Lookup Errors', 'fast-woo-oroder-lookup' ),
+				'fields' => $fields,
+			);
+			$info ['fast-woo-order-lookup'] = $item;
+		}
+
+		return $info;
+
 	}
 
 	/**
