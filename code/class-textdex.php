@@ -8,6 +8,7 @@ use stdClass;
 
 class Textdex {
 
+	const FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME = 'fast_woo_order_lookup_indexing_error';
 	private $tablename;
 
 	/** @var array Associative array, with keys named for meta_key values. */
@@ -483,10 +484,30 @@ QUERY;
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$resultset = $wpdb->get_results( $query );
 		if ( false === $resultset ) {
+			$this->capture_index_query_failure( $query );
 			$wpdb->bail( 'Order data retrieval failure' );
 		}
 
 		return $resultset;
+	}
+
+	/**
+	 * If a query fails, put a message in a transient.
+	 *
+	 * @param string $query
+	 *
+	 * @return void
+	 */
+	private function capture_index_query_failure( $query ) {
+		global $wpdb;
+		$query   = preg_replace( '/[ \t]+/', ' ', $query );
+		$msg     = array();
+		$msg []  = current_time( 'mysql', false ) . ' ' . 'Fast Woo Order Lookup index creation query error.';
+		$msg []  = $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection';
+		$msg []  = ltrim( preg_replace( '/\s+/', ' ', $query ) );
+		$msg []  = get_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME );
+		$message = substr( implode( PHP_EOL, array_filter( $msg ) ), 0, 16384 );
+		set_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME, $message, WEEK_IN_SECONDS );
 	}
 
 	/**

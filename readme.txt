@@ -5,11 +5,11 @@ Donate link:
 Contributors:  OllieJones
 Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 5.6
 WC requires at least: 4.0
-WC tested up to: 9.1.4
-Stable tag: 1.1.3
+WC tested up to: 9.7.1
+Stable tag: 1.1.4
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -88,9 +88,13 @@ Follow the usual procedure for installing a plugin from the wordpress.org plugin
 
 == Upgrade Notice ==
 
-Support for WooCommerce Sequential Order Numbers Pro. Faster initial indexing. WooCommerce's updgrades to 9.0.0 and 8.9.3. Custom field name cache for orders.
+WooCommerce 9.7.1 support.
 
 == Changelog ==
+
+= 1.1.4 April 5, 2025 =
+
+Handle a COUNT(*) query in support of pagination.
 
 = 1.1.3 October 7, 2024 =
 
