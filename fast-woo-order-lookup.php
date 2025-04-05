@@ -215,7 +215,7 @@ class FastWooOrderLookup {
 
 		if ( $this->filtering ) {
 			/* Discontinue filtering queries after the metadata search */
-			remove_filter( 'query', array( $this, 'standard_query' ), 1 );
+            remove_filter( 'query', array( $this, 'standard_query' ), 1 );
 			$this->filtering = false;
 		}
 
@@ -325,6 +325,7 @@ class FastWooOrderLookup {
 		}
 		if ( str_contains( $query, "$orderitems AS search_query_items ON search_query_items.order_id = $orders.id WHERE 1=1 AND" ) ||
 		     str_contains( $query, "SELECT $orders.id FROM $orders  WHERE 1=1 AND" ) ||
+		     str_contains( $query, "SELECT COUNT(*) FROM $orders  WHERE 1=1 AND" ) ||
 		     str_contains( $query, "SELECT COUNT(DISTINCT $orders.id) FROM  $orders  WHERE 1=1 AND" )
 		) {
 			return str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ") AND ", $query );
