@@ -486,8 +486,8 @@ QUERY;
 			) );
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$resultset = $wpdb->get_results( $query );
-		if ( false === $resultset ) {
-			$this->capture_index_query_failure( $query );
+		if ( ! $resultset ) {
+			$this->capture_query( '(indexing V' . FAST_WOO_ORDER_LOOKUP_VERSION . ')', 'indexing', true );
 			$wpdb->bail( 'Order data retrieval failure' );
 		}
 
@@ -497,20 +497,27 @@ QUERY;
 	/**
 	 * If a query fails, put a message in a transient.
 	 *
-	 * @param string $query
+	 * @param string $query Text of the query.
+	 * @param string $type 'indexing' or 'search'.
+	 * @param bool $is_error We're reporting an error.
 	 *
 	 * @return void
 	 */
-	private function capture_index_query_failure( $query ) {
+	public function capture_query( $query, $type, $is_error ) {
 		global $wpdb;
-		$query   = preg_replace( '/[ \t]+/', ' ', $query );
-		$msg     = array();
-		$msg []  = current_time( 'mysql', false ) . ' ' . 'Fast Woo Order Lookup index creation query error.';
-		$msg []  = $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection';
+		$trace  = debug_backtrace( 0, 2 );
+		$msg    = array();
+		$msg [] = current_time( 'mysql', false );
+		$msg [] = $type;
+		$msg [] = $trace[1]['function'] . ':';
+		if ( $is_error ) {
+			$msg [] = 'error:';
+			$msg [] = $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection';
+		}
 		$msg []  = ltrim( preg_replace( '/\s+/', ' ', $query ) );
-		$msg []  = get_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME );
-		$message = substr( implode( PHP_EOL, array_filter( $msg ) ), 0, 16384 );
-		set_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME, $message, WEEK_IN_SECONDS );
+		$message = implode( PHP_EOL, array_filter( $msg ) );
+
+		$this->store_message( $message );
 	}
 
 	/**
@@ -523,38 +530,98 @@ QUERY;
 	 * @return array
 	 */
 	public function debug_information( $info ) {
+		global $wpdb;
 
-		$error = get_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME );
-		if ( $error && is_string( $error ) ) {
+		$errors = get_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME );
+		if ( is_array( $errors ) ) {
+			$messages = array();
+			$counter  = 0;
+			foreach ( $errors as $error ) {
+				$messages[ 'error' . $counter ] = array(
+					'label' => __( 'Operation', 'fast-woo-oroder-lookup' ),
+					'value' => $error,
+					'debug' => $error,
+				);
+				$counter ++;
+			}
+			$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
+			$orders     = $wpdb->prefix . 'wc_orders';
+			$tables     = array(
+				$wpdb->postmeta,
+				$ordersmeta,
+				$orders,
+				$wpdb->prefix . 'woocommerce_order_items',
+				$wpdb->prefix . 'wc_order_addresses',
+			);
+
+			foreach ( $tables as $table ) {
+				$tbl                = $wpdb->get_col( $wpdb->prepare( "SHOW CREATE TABLE $table" ), 1 );
+				$messages[ $table ] = array(
+					'label' => $table,
+					'value' => $tbl,
+				);
+			}
+			$this->add_message( $messages,'post-types',
+				$this->get_counts( "SELECT post_type, COUNT(*) num FROM $wpdb->posts GROUP BY post_type" ));
+			$this->add_message( $messages,'order-postmeta-key',
+				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $wpdb->postmeta JOIN $wpdb->posts ON wp_postmeta.meta_id = wp_posts.ID WHERE post_type = 'shop_order' GROUP BY meta_key" ));
+			$this->add_message( $messages,'order-types',
+				$this->get_counts( "SELECT CONCAT_WS('/', type , status) ts, COUNT(*) num FROM $orders GROUP BY type, status" ));
+			$this->add_message( $messages,'order-meta',
+				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $ordersmeta  GROUP BY meta_key" ));
+
+
 			$fields                         = array(
+
 				'explanation' => array(
 					'label'   => __( 'Explanation', 'fast-woo-oroder-lookup' ),
-					'value'   => __( 'Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic.', 'fast-woo-oroder-lookup' ),
+					'value'   => __( 'Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic.', 'fast-woo-oroder-lookup' ) . ' ' .
+					             __( 'And sometimes some types of orders cannot be found. Search for the failing orders and return here to capture useful troubleshooting information.', 'fast-woo-oroder-lookup' ),
 					'debug'   => '',
 					'private' => true,
 				),
-				'request' => array(
-					'label'   => __( 'Request', 'fast-woo-oroder-lookup' ),
-					'value'   => __( 'Please create a support topic at', 'fast-woo-oroder-lookup' ) .' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
-					__( 'Click [Copy Site Info To Clipboard] then paste your site info into the topic.', 'fast-woo-oroder-lookup' ),
-					'debug' => 		 __( 'Please create a support topic at', 'fast-woo-oroder-lookup' ) .' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
-					__( 'and paste this site info (all of it please) into the topic. We will take a look.', 'fast-woo-oroder-lookup' ),
+				'request'     => array(
+					'label' => __( 'Request', 'fast-woo-oroder-lookup' ),
+					'value' => __( 'Please create a support topic at', 'fast-woo-oroder-lookup' ) . ' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
+					           __( 'Click [Copy Site Info To Clipboard] then paste your site info into the topic.', 'fast-woo-oroder-lookup' ),
+					'debug' => __( 'Please create a support topic at', 'fast-woo-oroder-lookup' ) . ' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
+					           __( 'and paste this site info (all of it please) into the topic. We will take a look.', 'fast-woo-oroder-lookup' ),
 
 				),
-				'errors' => array(
-					'label' => __( 'Index Creation Errors', 'fast-woo-oroder-lookup' ),
-					'value' => $error,
-					'debug' => $error,
-				)
 			);
 			$item                           = array(
-				'label'  => __( 'Fast Woo Order Lookup Errors', 'fast-woo-oroder-lookup' ),
-				'fields' => $fields,
+				'label'  => __( 'Fast Woo Order Lookup', 'fast-woo-oroder-lookup' ),
+				'fields' => array_merge( $fields, $messages ),
 			);
 			$info ['fast-woo-order-lookup'] = $item;
 		}
 
 		return $info;
+
+	}
+
+	private function add_message (&$messages, $tag, $message) {
+		$messages [$tag]         = array(
+			'label' => $tag,
+			'value' => $message,
+		);
+	}
+	private function get_counts( $query ) {
+		global $wpdb;
+		try {
+			$rows = $wpdb->get_results( $wpdb->prepare( $query ), OBJECT_K );
+			if ( ! $rows ) {
+				return 'error ' . ( $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection' ) . ': ' . $query;
+			}
+			$out = array();
+			foreach ( $rows as $item => $row ) {
+				$out [] = $item . ':' . $row->num;
+			}
+
+			return implode( ';', $out );
+		} catch( \Exception $e ) {
+			return 'exception ' . $e->getMessage() . ' ' . ( $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection' ) . ': ' . $query;
+		}
 
 	}
 
@@ -703,6 +770,16 @@ QUERY;
 		$version2 = implode( '.', $s );
 
 		return version_compare( $version1, $version2, '<' );
+	}
+
+	public function store_message( $message ) {
+		$messages = get_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME );
+		if ( ! is_array( $messages ) ) {
+			$messages = array();
+		}
+		array_unshift( $messages, $message );
+		$messages = array_slice( $messages, 0, 5 );
+		set_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME, $messages, WEEK_IN_SECONDS );
 	}
 }
 

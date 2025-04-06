@@ -253,6 +253,7 @@ class FastWooOrderLookup {
 		} else {
 			$newQuery = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $newQuery );
 		}
+		$this->textdex->capture_query( $newQuery, 'search', false );
 
 		return $newQuery;
 	}
@@ -328,7 +329,8 @@ class FastWooOrderLookup {
 		     str_contains( $query, "SELECT COUNT(*) FROM $orders  WHERE 1=1 AND" ) ||
 		     str_contains( $query, "SELECT COUNT(DISTINCT $orders.id) FROM  $orders  WHERE 1=1 AND" )
 		) {
-			return str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ") AND ", $query );
+			$query = str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ") AND ", $query );
+			$this->textdex->capture_query( $query, 'search', false );
 		}
 
 		return $query;
@@ -387,7 +389,7 @@ class FastWooOrderLookup {
 const FAST_WOO_ORDER_LOOKUP_NAME          = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.0.1';
+const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.1.4';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE   = __FILE__;
