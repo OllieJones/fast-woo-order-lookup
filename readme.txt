@@ -28,7 +28,7 @@ The downside: the trigram table takes database space and takes time to generate.
 
 The orders page itself contains a slow query to look up meta_keys. This fixes that query's performance too.
 
-<h4>If you have problems<h4>
+<h4>If you have problems</h4>
 
 The WordPress and WooCommerce ecosystems offer many optional features enabled by plugins. And, WooCommerce sites run on many different versions of database server. It is not possible to test this plugin on every imaginable combination. So, you may have problems getting it to work.
 
