@@ -538,7 +538,7 @@ QUERY;
 			$counter  = 0;
 			foreach ( $errors as $error ) {
 				$messages[ 'error' . $counter ] = array(
-					'label' => __( 'Operation', 'fast-woo-oroder-lookup' ),
+					'label' => __( 'Operation', 'fast-woo-order-lookup' ),
 					'value' => $error,
 					'debug' => $error,
 				);
@@ -561,36 +561,61 @@ QUERY;
 					'value' => $tbl,
 				);
 			}
-			$this->add_message( $messages,'post-types',
-				$this->get_counts( "SELECT post_type, COUNT(*) num FROM $wpdb->posts GROUP BY post_type" ));
-			$this->add_message( $messages,'order-postmeta-key',
-				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $wpdb->postmeta JOIN $wpdb->posts ON wp_postmeta.meta_id = wp_posts.ID WHERE post_type = 'shop_order' GROUP BY meta_key" ));
-			$this->add_message( $messages,'order-types',
-				$this->get_counts( "SELECT CONCAT_WS('/', type , status) ts, COUNT(*) num FROM $orders GROUP BY type, status" ));
-			$this->add_message( $messages,'order-meta',
-				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $ordersmeta  GROUP BY meta_key" ));
+			$this->add_message( $messages, 'post-types',
+				$this->get_counts( "SELECT post_type, COUNT(*) num FROM $wpdb->posts GROUP BY post_type" ) );
+			$this->add_message( $messages, 'order-postmeta-key',
+				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $wpdb->postmeta JOIN $wpdb->posts ON wp_postmeta.meta_id = wp_posts.ID WHERE post_type = 'shop_order' GROUP BY meta_key" ) );
+			$this->add_message( $messages, 'order-types',
+				$this->get_counts( "SELECT CONCAT_WS('/', type , status) ts, COUNT(*) num FROM $orders GROUP BY type, status" ) );
+			$this->add_message( $messages, 'order-meta',
+				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $ordersmeta  GROUP BY meta_key" ) );
 
 
+			$hpos = 'no';
+			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+				$hpos = \Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled( 'custom_order_tables' ) ? 'yes' : 'no';
+			}
+
+			$countout = '?';
+			try {
+				$counts   = $wpdb->get_results( $wpdb->prepare( "SELECT COUNT(*) trigrams, MIN(i) first_id, MAX(i) last_id FROM $this->tablename", ARRAY_A ) );
+				$counts   = $counts[0];
+				$countout = array();
+				foreach ( $counts as $col => $count ) {
+					$countout[] = $col . ':' . $count;
+				}
+				$countout = implode( ';', $countout );
+			} catch ( \Exception $e ) {
+				$countout = $e->getMessage();
+			}
 			$fields                         = array(
 
-				'explanation' => array(
-					'label'   => __( 'Explanation', 'fast-woo-oroder-lookup' ),
-					'value'   => __( 'Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic.', 'fast-woo-oroder-lookup' ) . ' ' .
-					             __( 'And sometimes some types of orders cannot be found. Search for the failing orders and return here to capture useful troubleshooting information.', 'fast-woo-oroder-lookup' ),
+				'explanation'  => array(
+					'label'   => __( 'Explanation', 'fast-woo-order-lookup' ),
+					'value'   => __( 'Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic.', 'fast-woo-order-lookup' ) . ' ' .
+					             __( 'And sometimes some types of orders cannot be found. Search for the failing orders and return here to capture useful troubleshooting information.', 'fast-woo-order-lookup' ),
 					'debug'   => '',
 					'private' => true,
 				),
-				'request'     => array(
-					'label' => __( 'Request', 'fast-woo-oroder-lookup' ),
-					'value' => __( 'Please create a support topic at', 'fast-woo-oroder-lookup' ) . ' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
-					           __( 'Click [Copy Site Info To Clipboard] then paste your site info into the topic.', 'fast-woo-oroder-lookup' ),
-					'debug' => __( 'Please create a support topic at', 'fast-woo-oroder-lookup' ) . ' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
-					           __( 'and paste this site info (all of it please) into the topic. We will take a look.', 'fast-woo-oroder-lookup' ),
+				'request'      => array(
+					'label' => __( 'Request', 'fast-woo-order-lookup' ),
+					'value' => __( 'Please create a support topic at', 'fast-woo-order-lookup' ) . ' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
+					           __( 'Click [Copy Site Info To Clipboard] then paste your site info into the topic.', 'fast-woo-order-lookup' ),
+					'debug' => __( 'Please create a support topic at', 'fast-woo-order-lookup' ) . ' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
+					           __( 'and paste this site info (all of it please) into the topic. We will take a look.', 'fast-woo-order-lookup' ),
 
+				),
+				'hpos-enabled' => array(
+					'label' => __( 'HPOS Enabled', 'fast-woo-order-lookup' ),
+					'value' => $hpos,
+				),
+				'trigram-table' => array(
+					'label' => __( 'Trigram Table', 'fast-woo-order-lookup' ),
+					'value' => $countout,
 				),
 			);
 			$item                           = array(
-				'label'  => __( 'Fast Woo Order Lookup', 'fast-woo-oroder-lookup' ),
+				'label'  => __( 'Fast Woo Order Lookup', 'fast-woo-order-lookup' ),
 				'fields' => array_merge( $fields, $messages ),
 			);
 			$info ['fast-woo-order-lookup'] = $item;
@@ -600,12 +625,13 @@ QUERY;
 
 	}
 
-	private function add_message (&$messages, $tag, $message) {
-		$messages [$tag]         = array(
+	private function add_message( &$messages, $tag, $message ) {
+		$messages [ $tag ] = array(
 			'label' => $tag,
 			'value' => $message,
 		);
 	}
+
 	private function get_counts( $query ) {
 		global $wpdb;
 		try {
