@@ -571,9 +571,12 @@ QUERY;
 				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $ordersmeta  GROUP BY meta_key" ) );
 
 
-			$hpos = 'no';
+			$featurelist = array();
 			if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
-				$hpos = \Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled( 'custom_order_tables' ) ? 'yes' : 'no';
+				$features = \Automattic\WooCommerce\Utilities\FeaturesUtil::get_features( true, true );
+				foreach ( $features as $feature => $datablock ) {
+					$featurelist [] = ( $feature . ':' . ( $datablock['is_enabled'] ? 'enabled' : 'disabled' ) );
+				}
 			}
 
 			$countout = '?';
@@ -585,19 +588,19 @@ QUERY;
 					$countout[] = $col . ':' . $count;
 				}
 				$countout = implode( ';', $countout );
-			} catch ( \Exception $e ) {
+			} catch( \Exception $e ) {
 				$countout = $e->getMessage();
 			}
 			$fields                         = array(
 
-				'explanation'  => array(
+				'explanation'   => array(
 					'label'   => __( 'Explanation', 'fast-woo-order-lookup' ),
 					'value'   => __( 'Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic.', 'fast-woo-order-lookup' ) . ' ' .
 					             __( 'And sometimes some types of orders cannot be found. Search for the failing orders and return here to capture useful troubleshooting information.', 'fast-woo-order-lookup' ),
 					'debug'   => '',
 					'private' => true,
 				),
-				'request'      => array(
+				'request'       => array(
 					'label' => __( 'Request', 'fast-woo-order-lookup' ),
 					'value' => __( 'Please create a support topic at', 'fast-woo-order-lookup' ) . ' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
 					           __( 'Click [Copy Site Info To Clipboard] then paste your site info into the topic.', 'fast-woo-order-lookup' ),
@@ -605,9 +608,9 @@ QUERY;
 					           __( 'and paste this site info (all of it please) into the topic. We will take a look.', 'fast-woo-order-lookup' ),
 
 				),
-				'hpos-enabled' => array(
-					'label' => __( 'HPOS Enabled', 'fast-woo-order-lookup' ),
-					'value' => $hpos,
+				'woo-features'  => array(
+					'label' => __( 'WooCommerce Features', 'fast-woo-order-lookup' ),
+					'value' => implode( '; ', $featurelist ),
 				),
 				'trigram-table' => array(
 					'label' => __( 'Trigram Table', 'fast-woo-order-lookup' ),
