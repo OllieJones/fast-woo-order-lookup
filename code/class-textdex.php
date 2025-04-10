@@ -57,6 +57,7 @@ class Textdex {
 		$textdex_status = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
+			$this->capture_query( 'Indexing start', 'event', false);
 			$collation = $wpdb->collate;
 			$table     = <<<TABLE
 CREATE TABLE $tablename (
@@ -136,6 +137,8 @@ TABLE;
 		delete_transient( 'fast_woo_order_lookup_scheduled' );
 		if ( $another_batch ) {
 			$this->schedule_batch();
+		} else {
+			$this->capture_query( 'Indexing end', 'event', false );
 		}
 
 	}
@@ -153,6 +156,9 @@ TABLE;
 	 */
 	public function have_more_batches( $fuzz_factor = 0 ) {
 		$textdex_status = $this->get_option();
+		if ( is_string( $textdex_status['error'] ) ) {
+			return false;
+		}
 
 		return ( ( $fuzz_factor + $textdex_status['current'] ) < $textdex_status['last'] );
 	}
@@ -179,13 +185,25 @@ TABLE;
 	}
 
 	/**
+	 * Get any recently captured error.
+	 *
+	 * @return false|string
+	 */
+	public function get_load_error() {
+		$textdex_status = $this->get_option();
+		$error          = $textdex_status['error'];
+
+		return is_string( $error ) ? $error : false;
+	}
+
+	/**
 	 * Load the next batch of orders into the trigram table.
 	 *
 	 * @return bool true if there are still more batches to process.
 	 */
 	private function load_next_batch() {
 		$textdex_status = $this->get_option();
-		if ( $textdex_status['current'] >= $textdex_status['last'] ) {
+		if ( is_string( $textdex_status['error'] ) || $textdex_status['current'] >= $textdex_status['last'] ) {
 			return false;
 		}
 		$first = $textdex_status['current'];
@@ -197,28 +215,41 @@ TABLE;
 		$wpdb->query( 'BEGIN;' );
 
 		$resultset = $this->get_order_metadata( $first, $last );
-		$trigrams  = array();
-		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
-			$trigrams[ $wpdb->prepare( '(%s,%d)', $trigram[0], $trigram[1] ) ] = 1;
-			if ( count( $trigrams ) >= $trigram_count ) {
-				$this->do_insert_statement( $trigrams );
-				$trigrams = array();
-			}
-		}
-		$this->do_insert_statement( $trigrams );
-		unset ( $resultset, $trigrams );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query( 'COMMIT;' );
-		$textdex_status['current'] = $last;
-		$this->update_option( $textdex_status );
+		if ( is_string( $resultset ) ) {
+			$textdex_status['error'] = $resultset;
+			$this->update_option( $textdex_status );
 
-		return $textdex_status['current'] < $textdex_status['last'];
+			return false;
+		} else if ( is_array( $resultset ) ) {
+			$trigrams = array();
+			foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
+				$trigrams[ $wpdb->prepare( '(%s,%d)', $trigram[0], $trigram[1] ) ] = 1;
+				if ( count( $trigrams ) >= $trigram_count ) {
+					$this->do_insert_statement( $trigrams );
+					$trigrams = array();
+				}
+			}
+			$this->do_insert_statement( $trigrams );
+			unset ( $resultset, $trigrams );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( 'COMMIT;' );
+			$textdex_status['current'] = $last;
+			$this->update_option( $textdex_status );
+
+			return $textdex_status['current'] < $textdex_status['last'];
+		} else {
+			/* The resultset was not valid. */
+			return false;
+		}
 	}
 
 	/**
 	 * @return bool true if the trigram index is ready to use.
 	 */
 	public function is_ready( $fuzz_factor = 10 ) {
+		if ( $this->get_load_error()) {
+			return false;
+		}
 		return ! $this->have_more_batches( $fuzz_factor );
 	}
 
@@ -331,6 +362,8 @@ TABLE;
 	 */
 	public function deactivate() {
 		global $wpdb;
+		$this->capture_query( 'Deactivate', 'event', false);
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$wpdb->query( "DROP TABLE $this->tablename;" );
 		delete_option( $this->option_name );
@@ -393,7 +426,7 @@ TABLE;
 	 * @param int $first First order ID to get
 	 * @param int $last Last + 1 order ID to get. Default: Just get one.
 	 *
-	 * @return array|false|mixed|object|stdClass[]|null
+	 * @return array|false|mixed|object|stdClass[]|null  Resultset, string, or falsy
 	 */
 	private function get_order_metadata( $first, $last = null ) {
 		$first = (int) $first;
@@ -487,8 +520,7 @@ QUERY;
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$resultset = $wpdb->get_results( $query );
 		if ( ! $resultset ) {
-			$this->capture_query( '(indexing V' . FAST_WOO_ORDER_LOOKUP_VERSION . ')', 'indexing', true );
-			$wpdb->bail( 'Order data retrieval failure' );
+			return $this->capture_query( '(indexing V' . FAST_WOO_ORDER_LOOKUP_VERSION . ')', 'indexing', true );
 		}
 
 		return $resultset;
@@ -501,23 +533,27 @@ QUERY;
 	 * @param string $type 'indexing' or 'search'.
 	 * @param bool $is_error We're reporting an error.
 	 *
-	 * @return void
+	 * @return string|false
 	 */
 	public function capture_query( $query, $type, $is_error ) {
 		global $wpdb;
-		$trace  = debug_backtrace( 0, 2 );
-		$msg    = array();
-		$msg [] = current_time( 'mysql', false );
-		$msg [] = $type;
-		$msg [] = $trace[1]['function'] . ':';
+		$dberror = false;
+		$trace   = debug_backtrace( 0, 2 );
+		$msg     = array();
+		$msg []  = current_time( 'mysql', false );
+		$msg []  = $type;
+		$msg []  = $trace[1]['function'] . ':';
 		if ( $is_error ) {
-			$msg [] = 'error:';
-			$msg [] = $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection';
+			$dberror = $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection';
+			$msg []  = 'error:';
+			$msg []  = $dberror;
 		}
 		$msg []  = ltrim( preg_replace( '/\s+/', ' ', $query ) );
 		$message = implode( PHP_EOL, array_filter( $msg ) );
 
 		$this->store_message( $message );
+
+		return $dberror;
 	}
 
 	/**
@@ -555,7 +591,7 @@ QUERY;
 			);
 
 			foreach ( $tables as $table ) {
-				$tbl                = $wpdb->get_col( $wpdb->prepare( "SHOW CREATE TABLE $table" ), 1 );
+				$tbl                = $wpdb->get_col( "SHOW CREATE TABLE $table", 1 );
 				$messages[ $table ] = array(
 					'label' => $table,
 					'value' => $tbl,
@@ -581,7 +617,7 @@ QUERY;
 
 			$countout = '?';
 			try {
-				$counts   = $wpdb->get_results( $wpdb->prepare( "SELECT COUNT(*) trigrams, MIN(i) first_id, MAX(i) last_id FROM $this->tablename", ARRAY_A ) );
+				$counts   = $wpdb->get_results( "SELECT COUNT(*) trigrams, MIN(i) first_id, MAX(i) last_id FROM $this->tablename", ARRAY_A );
 				$counts   = $counts[0];
 				$countout = array();
 				foreach ( $counts as $col => $count ) {
@@ -638,7 +674,7 @@ QUERY;
 	private function get_counts( $query ) {
 		global $wpdb;
 		try {
-			$rows = $wpdb->get_results( $wpdb->prepare( $query ), OBJECT_K );
+			$rows = $wpdb->get_results( $query, OBJECT_K );
 			if ( ! $rows ) {
 				return 'error ' . ( $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection' ) . ': ' . $query;
 			}
@@ -681,15 +717,21 @@ QUERY;
 	 * @return false|mixed|null
 	 */
 	private function get_option() {
-		return get_option( $this->option_name,
+		$option = get_option( $this->option_name,
 			array(
 				'new'           => true,
 				'current'       => 0,
 				'batch'         => $this->batch_size,
 				'trigram_batch' => $this->trigram_batch_size,
 				'last'          => - 1,
-				'version'       => FAST_WOO_ORDER_LOOKUP_VERSION
+				'version'       => FAST_WOO_ORDER_LOOKUP_VERSION,
+				'error'         => false,
 			) );
+		if ( ! isset( $option['error'] ) ) {
+			$option['error'] = false;
+		}
+
+		return $option;
 	}
 
 	/**
@@ -807,8 +849,9 @@ QUERY;
 			$messages = array();
 		}
 		array_unshift( $messages, $message );
-		$messages = array_slice( $messages, 0, 5 );
+		$messages = array_slice( $messages, 0, 10 );
 		set_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME, $messages, WEEK_IN_SECONDS );
 	}
+
 }
 

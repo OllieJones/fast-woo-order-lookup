@@ -9,13 +9,13 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-04-09T09:51:42-04:00\n"
+"POT-Creation-Date: 2025-04-10T17:03:19-04:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: fast-woo-order-lookup\n"
 
 #. Plugin Name of the plugin
-#: code/class-textdex.php:621
+#: code/class-textdex.php:657
 msgid "Fast Woo Order Lookup"
 msgstr ""
 
@@ -35,68 +35,104 @@ msgstr ""
 msgid "https://github.com/OllieJones"
 msgstr ""
 
-#: code/class-textdex.php:541
+#: code/class-textdex.php:577
 msgid "Operation"
 msgstr ""
 
-#: code/class-textdex.php:597
+#: code/class-textdex.php:633
 msgid "Explanation"
 msgstr ""
 
-#: code/class-textdex.php:598
+#: code/class-textdex.php:634
 msgid "Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic."
 msgstr ""
 
-#: code/class-textdex.php:599
+#: code/class-textdex.php:635
 msgid "And sometimes some types of orders cannot be found. Search for the failing orders and return here to capture useful troubleshooting information."
 msgstr ""
 
-#: code/class-textdex.php:604
+#: code/class-textdex.php:640
 msgid "Request"
 msgstr ""
 
-#: code/class-textdex.php:605
-#: code/class-textdex.php:607
+#: code/class-textdex.php:641
+#: code/class-textdex.php:643
 msgid "Please create a support topic at"
 msgstr ""
 
-#: code/class-textdex.php:606
+#: code/class-textdex.php:642
 msgid "Click [Copy Site Info To Clipboard] then paste your site info into the topic."
 msgstr ""
 
-#: code/class-textdex.php:608
+#: code/class-textdex.php:644
 msgid "and paste this site info (all of it please) into the topic. We will take a look."
 msgstr ""
 
-#: code/class-textdex.php:612
+#: code/class-textdex.php:648
 msgid "WooCommerce Features"
 msgstr ""
 
-#: code/class-textdex.php:616
+#: code/class-textdex.php:652
 msgid "Trigram Table"
 msgstr ""
 
-#: fast-woo-order-lookup.php:142
+#: fast-woo-order-lookup.php:154
+msgid "Fast Woo Order Lookup indexing failed."
+msgstr ""
+
+#: fast-woo-order-lookup.php:155
+msgid "This happens with some WooCommerce plugins the author did not anticipate."
+msgstr ""
+
+#: fast-woo-order-lookup.php:156
+msgid "Please create a"
+msgstr ""
+
+#: fast-woo-order-lookup.php:157
+msgid "support topic"
+msgstr ""
+
+#: fast-woo-order-lookup.php:158
+msgid "and paste your"
+msgstr ""
+
+#: fast-woo-order-lookup.php:159
+msgid "Site Health - Info"
+msgstr ""
+
+#: fast-woo-order-lookup.php:160
+msgid "contents into it. Then"
+msgstr ""
+
+#: fast-woo-order-lookup.php:161
+msgid "deactivate"
+msgstr ""
+
+#: fast-woo-order-lookup.php:162
+msgid "the plugin."
+msgstr ""
+
+#: fast-woo-order-lookup.php:181
 msgid "See the"
 msgstr ""
 
-#: fast-woo-order-lookup.php:143
+#: fast-woo-order-lookup.php:182
 msgid "Scheduled Actions status page"
 msgstr ""
 
-#: fast-woo-order-lookup.php:144
+#: fast-woo-order-lookup.php:183
 msgid "for details."
 msgstr ""
 
-#: fast-woo-order-lookup.php:147
+#: fast-woo-order-lookup.php:186
 msgid "Fast Woo Order Lookup indexing begins soon."
 msgstr ""
 
-#: fast-woo-order-lookup.php:151
+#: fast-woo-order-lookup.php:190
 msgid "Fast Woo Order Lookup indexing still in progress."
 msgstr ""
 
 #. translators: 1: percent 12.3
-#: fast-woo-order-lookup.php:153
+#: fast-woo-order-lookup.php:192
 msgid "%1$s%% complete."
 msgstr ""

@@ -119,13 +119,23 @@ class FastWooOrderLookup {
 	 * Configure this plugin to intercept metadata searches for WooCommerce orders.
 	 */
 	private function __construct() {
-		/* Query manipulation */
-		add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ) );
-		add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ) );
-		add_filter( 'woocommerce_shop_order_search_results', array( $this, 'filter_search_results' ), 10, 3 );
-		add_filter( 'woocommerce_shop_subscription_search_results', array( $this, 'filter_search_results' ), 10, 3 );
-		add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ) );
-		add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
+		require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
+		$this->textdex = new Textdex();
+		$this->textdex->activate();
+		$this->textdex->load_textdex();
+
+		if ( $this->textdex->is_ready() ) {
+			/* Query manipulation */
+			add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'filter_search_fields' ) );
+			add_filter( 'woocommerce_shop_subscription_search_fields', array( $this, 'filter_search_fields' ) );
+			add_filter( 'woocommerce_shop_order_search_results', array( $this, 'filter_search_results' ), 10, 3 );
+			add_filter( 'woocommerce_shop_subscription_search_results', array(
+				$this,
+				'filter_search_results'
+			), 10, 3 );
+			add_filter( 'woocommerce_order_query_args', array( $this, 'woocommerce_order_query_args' ) );
+			add_filter( 'woocommerce_order_query', array( $this, 'woocommerce_order_query' ), 10, 2 );
+		}
 		add_filter( 'postmeta_form_keys', array( $this, 'postmeta_get_order_custom_field_names' ), 10, 2 );
 
 		require_once( plugin_dir_path( __FILE__ ) . 'code/class-textdex.php' );
@@ -138,8 +148,37 @@ class FastWooOrderLookup {
 	}
 
 	public function show_status() {
-		if ( ! $this->textdex->is_ready( 10 ) ) {
-    			$sa1  = __( 'See the', 'fast-woo-order-lookup' );
+
+		$error = $this->textdex->get_load_error();
+		if ( $error ) {
+			$ms1 = __( 'Fast Woo Order Lookup indexing failed.', 'fast-woo-order-lookup' );
+			$ms2 = __( 'This happens with some WooCommerce plugins the author did not anticipate.', 'fast-woo-order-lookup' );
+			$ms3 = __( 'Please create a', 'fast-woo-order-lookup' );
+			$ms4 = __( 'support topic', 'fast-woo-order-lookup' );
+			$ms5 = __( 'and paste your', 'fast-woo-order-lookup' );
+			$ms6 = __( 'Site Health - Info', 'fast-woo-order-lookup' );
+			$ms7 = __( 'contents into it. Then', 'fast-woo-order-lookup' );
+			$ms8 = __( 'deactivate', 'fast-woo-order-lookup' );
+			$ms9 = __( 'the plugin.', 'fast-woo-order-lookup' );
+
+
+			?>
+            <div class="notice notice-error">
+                <p>
+					<?php echo esc_html( $ms1 ); ?>
+					<?php echo esc_html( $ms2 ); ?>
+					<?php echo esc_html( $ms3 ); ?>
+                    <a href="https://wordpress.org/support/plugin/fast-woo-order-lookup/"
+                       target="_blank"><?php echo esc_html( $ms4 ); ?></a>
+					<?php echo esc_html( $ms5 ); ?>
+                    <a href="/wp-admin/site-health.php?tab=debug" target="_blank"><?php echo esc_html( $ms6 ); ?></a>
+					<?php echo esc_html( $ms7 ); ?>
+                    <a href=/wp-admin/plugins.php"><?php echo esc_html( $ms8 ); ?></a>
+					<?php echo esc_html( $ms9 ); ?>
+                </p></div>
+			<?php
+		} else if ( ! $this->textdex->is_ready( 10 ) ) {
+			$sa1  = __( 'See the', 'fast-woo-order-lookup' );
 			$sa2  = __( 'Scheduled Actions status page', 'fast-woo-order-lookup' );
 			$sa3  = __( 'for details.', 'fast-woo-order-lookup' );
 			$frac = $this->textdex->fraction_complete();
