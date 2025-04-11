@@ -358,6 +358,7 @@ class FastWooOrderLookup {
 		$orders     = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 
+		$this->textdex->capture_query( $query, 'search', false );
 		/* Skip modifying the FULLTEXT search option choice. */
 		if ( str_contains( $query, 'IN BOOLEAN MODE' ) ) {
 			return $query;
@@ -368,7 +369,6 @@ class FastWooOrderLookup {
 		     str_contains( $query, "SELECT COUNT(DISTINCT $orders.id) FROM  $orders  WHERE 1=1 AND" )
 		) {
 			$query = str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ") AND ", $query );
-			$this->textdex->capture_query( $query, 'search', false );
 		}
 
 		return $query;

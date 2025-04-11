@@ -849,7 +849,7 @@ QUERY;
 			$messages = array();
 		}
 		array_unshift( $messages, $message );
-		$messages = array_slice( $messages, 0, 10 );
+		$messages = array_slice( $messages, 0, 16 );
 		set_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME, $messages, WEEK_IN_SECONDS );
 	}
 
