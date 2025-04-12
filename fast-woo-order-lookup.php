@@ -11,7 +11,7 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       1.1.5
+ * Version:       1.1.6
  * Requires PHP: 5.6
  * Requires at least: 5.8
  * Tested up to: 6.8
@@ -284,14 +284,17 @@ class FastWooOrderLookup {
 			$this->trigram_clause = $this->textdex->trigram_clause( $this->term );
 		}
 		$newQuery = $query;
+		$munged   = false;
 		if ( str_contains( $newQuery, 'woocommerce_order_items as order_item' ) ) {
 			$newQuery = str_replace( 'WHERE order_item_name LIKE', 'WHERE order_id IN (' . $this->trigram_clause . ') AND order_item_name LIKE', $newQuery );
+			$munged   = true;
 		} else if ( str_contains( $newQuery, 'SELECT DISTINCT os.order_id FROM wp_wc_order_stats os' ) ) {
 			/* empty, intentionally */
 		} else {
 			$newQuery = str_replace( 'postmeta p1 WHERE ', 'postmeta p1 WHERE post_id IN (' . $this->trigram_clause . ') AND ', $newQuery );
+			$munged   = true;
 		}
-		$this->textdex->capture_query( $newQuery, 'search', false );
+		$munged && $this->textdex->capture_query( $newQuery, 'search', false );
 
 		return $newQuery;
 	}
@@ -358,7 +361,6 @@ class FastWooOrderLookup {
 		$orders     = $wpdb->prefix . 'wc_orders';
 		$orderitems = $wpdb->prefix . 'woocommerce_order_items';
 
-		$this->textdex->capture_query( $query, 'search', false );
 		/* Skip modifying the FULLTEXT search option choice. */
 		if ( str_contains( $query, 'IN BOOLEAN MODE' ) ) {
 			return $query;
@@ -369,6 +371,8 @@ class FastWooOrderLookup {
 		     str_contains( $query, "SELECT COUNT(DISTINCT $orders.id) FROM  $orders  WHERE 1=1 AND" )
 		) {
 			$query = str_replace( 'WHERE 1=1 AND', "WHERE 1=1 AND  $orders.id IN (" . $this->trigram_clause . ") AND ", $query );
+			$this->textdex->capture_query( $query, 'search', false );
+
 		}
 
 		return $query;
@@ -427,7 +431,7 @@ class FastWooOrderLookup {
 const FAST_WOO_ORDER_LOOKUP_NAME          = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.1.5';
+const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.1.6';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE   = __FILE__;

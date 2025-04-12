@@ -7,8 +7,8 @@ Requires at least: 5.9
 Tested up to: 6.8
 Requires PHP: 5.6
 WC requires at least: 8.0
-WC tested up to: 9.7.1
-Stable tag: 1.1.5
+WC tested up to: 9.8.1
+Stable tag: 1.1.6
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -100,14 +100,17 @@ This version adds diagnostic information to the Info tab of your Site Health pag
 
 == Changelog ==
 
-= 1.1.4 April 5, 2025 =
+= 1.1.6 = April 11, 2025 =
 
-Handle a COUNT(*) query in support of pagination.
-
+Fix memory leak in logging.
 
 = 1.1.5 April 9, 2025 =
 
 Improve Site Health Info.
+
+= 1.1.4 April 5, 2025 =
+
+Handle a COUNT(*) query in support of pagination.
 
 = 1.1.3 October 7, 2024 =
 

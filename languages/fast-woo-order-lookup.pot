@@ -2,20 +2,20 @@
 # This file is distributed under the GPLv2.
 msgid ""
 msgstr ""
-"Project-Id-Version: Fast Woo Order Lookup 1.1.5\n"
+"Project-Id-Version: Fast Woo Order Lookup 1.1.6\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/fast-woo-order-lookup\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-04-11T18:29:42-04:00\n"
+"POT-Creation-Date: 2025-04-12T17:19:39-04:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: fast-woo-order-lookup\n"
 
 #. Plugin Name of the plugin
-#: code/class-textdex.php:657
+#: code/class-textdex.php:656
 msgid "Fast Woo Order Lookup"
 msgstr ""
 
@@ -35,44 +35,44 @@ msgstr ""
 msgid "https://github.com/OllieJones"
 msgstr ""
 
-#: code/class-textdex.php:577
+#: code/class-textdex.php:576
 msgid "Operation"
 msgstr ""
 
-#: code/class-textdex.php:633
+#: code/class-textdex.php:632
 msgid "Explanation"
 msgstr ""
 
-#: code/class-textdex.php:634
+#: code/class-textdex.php:633
 msgid "Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic."
 msgstr ""
 
-#: code/class-textdex.php:635
+#: code/class-textdex.php:634
 msgid "And sometimes some types of orders cannot be found. Search for the failing orders and return here to capture useful troubleshooting information."
 msgstr ""
 
-#: code/class-textdex.php:640
+#: code/class-textdex.php:639
 msgid "Request"
 msgstr ""
 
-#: code/class-textdex.php:641
-#: code/class-textdex.php:643
+#: code/class-textdex.php:640
+#: code/class-textdex.php:642
 msgid "Please create a support topic at"
 msgstr ""
 
-#: code/class-textdex.php:642
+#: code/class-textdex.php:641
 msgid "Click [Copy Site Info To Clipboard] then paste your site info into the topic."
 msgstr ""
 
-#: code/class-textdex.php:644
+#: code/class-textdex.php:643
 msgid "and paste this site info (all of it please) into the topic. We will take a look."
 msgstr ""
 
-#: code/class-textdex.php:648
+#: code/class-textdex.php:647
 msgid "WooCommerce Features"
 msgstr ""
 
-#: code/class-textdex.php:652
+#: code/class-textdex.php:651
 msgid "Trigram Table"
 msgstr ""
 

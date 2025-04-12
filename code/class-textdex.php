@@ -57,7 +57,7 @@ class Textdex {
 		$textdex_status = $this->get_option();
 
 		if ( array_key_exists( 'new', $textdex_status ) ) {
-			$this->capture_query( 'Indexing start', 'event', false);
+			$this->capture_query( 'Indexing start', 'event', false );
 			$collation = $wpdb->collate;
 			$table     = <<<TABLE
 CREATE TABLE $tablename (
@@ -138,7 +138,7 @@ TABLE;
 		if ( $another_batch ) {
 			$this->schedule_batch();
 		} else {
-			$this->capture_query( 'Indexing end', 'event', false );
+			$this->capture_query( 'Indexing complete', 'event', false );
 		}
 
 	}
@@ -247,9 +247,10 @@ TABLE;
 	 * @return bool true if the trigram index is ready to use.
 	 */
 	public function is_ready( $fuzz_factor = 10 ) {
-		if ( $this->get_load_error()) {
+		if ( $this->get_load_error() ) {
 			return false;
 		}
+
 		return ! $this->have_more_batches( $fuzz_factor );
 	}
 
@@ -362,7 +363,7 @@ TABLE;
 	 */
 	public function deactivate() {
 		global $wpdb;
-		$this->capture_query( 'Deactivate', 'event', false);
+		$this->capture_query( 'Deactivate', 'event', false );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 		$wpdb->query( "DROP TABLE $this->tablename;" );
@@ -538,20 +539,19 @@ QUERY;
 	public function capture_query( $query, $type, $is_error ) {
 		global $wpdb;
 		$dberror = false;
-		$trace   = debug_backtrace( 0, 2 );
 		$msg     = array();
 		$msg []  = current_time( 'mysql', false );
 		$msg []  = $type;
-		$msg []  = $trace[1]['function'] . ':';
 		if ( $is_error ) {
 			$dberror = $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection';
 			$msg []  = 'error:';
 			$msg []  = $dberror;
 		}
 		$msg []  = ltrim( preg_replace( '/\s+/', ' ', $query ) );
-		$message = implode( PHP_EOL, array_filter( $msg ) );
+		$message = implode( ' ', array_filter( $msg ) );
 
 		$this->store_message( $message );
+		unset ( $message );
 
 		return $dberror;
 	}
@@ -843,14 +843,19 @@ QUERY;
 		return version_compare( $version1, $version2, '<' );
 	}
 
-	public function store_message( $message ) {
+	public function store_message( $message, $keep = 10 ) {
 		$messages = get_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME );
 		if ( ! is_array( $messages ) ) {
 			$messages = array();
 		}
-		array_unshift( $messages, $message );
-		$messages = array_slice( $messages, 0, 16 );
-		set_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME, $messages, WEEK_IN_SECONDS );
+		$new_messages = array();
+		$new_messages[] = $message;
+		for ( $i = 0; $i < $keep - 1 && $i < count( $messages ); $i ++ ) {
+			$new_messages[] = $messages[ $i ];
+		}
+		unset ( $messages );
+		set_transient( self::FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME, $new_messages, WEEK_IN_SECONDS );
+		unset ( $new_messages );
 	}
 
 }
