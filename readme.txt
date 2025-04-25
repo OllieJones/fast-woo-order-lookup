@@ -7,8 +7,8 @@ Requires at least: 5.9
 Tested up to: 6.8
 Requires PHP: 5.6
 WC requires at least: 8.0
-WC tested up to: 9.8.1
-Stable tag: 1.1.6
+WC tested up to: 9.8.2
+Stable tag: 1.1.7
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -99,6 +99,10 @@ Follow the usual procedure for installing a plugin from the wordpress.org plugin
 This version adds diagnostic information to the Info tab of your Site Health page. Including that information when you repoert a problem will help the author correct the problem.
 
 == Changelog ==
+
+= 1.1.7 = April 25, 2025 =
+
+Fix memory leak in logging.
 
 = 1.1.6 = April 11, 2025 =
 

@@ -600,7 +600,7 @@ QUERY;
 			$this->add_message( $messages, 'post-types',
 				$this->get_counts( "SELECT post_type, COUNT(*) num FROM $wpdb->posts GROUP BY post_type" ) );
 			$this->add_message( $messages, 'order-postmeta-key',
-				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $wpdb->postmeta JOIN $wpdb->posts ON wp_postmeta.meta_id = wp_posts.ID WHERE post_type = 'shop_order' GROUP BY meta_key" ) );
+				$this->get_counts( "SELECT meta_key, COUNT(*) num FROM $wpdb->postmeta pm JOIN $wpdb->posts p ON pm.meta_id = p.ID WHERE post_type = 'shop_order' GROUP BY meta_key" ) );
 			$this->add_message( $messages, 'order-types',
 				$this->get_counts( "SELECT CONCAT_WS('/', type , status) ts, COUNT(*) num FROM $orders GROUP BY type, status" ) );
 			$this->add_message( $messages, 'order-meta',
