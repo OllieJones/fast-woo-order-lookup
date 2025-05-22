@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2.
 msgid ""
 msgstr ""
-"Project-Id-Version: Fast Woo Order Lookup 1.1.7\n"
+"Project-Id-Version: Fast Woo Order Lookup 1.1.8\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/fast-woo-order-lookup\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-05-01T11:05:04-04:00\n"
+"POT-Creation-Date: 2025-05-22T15:25:32-04:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: fast-woo-order-lookup\n"
@@ -76,63 +76,63 @@ msgstr ""
 msgid "Trigram Table"
 msgstr ""
 
-#: fast-woo-order-lookup.php:154
+#: fast-woo-order-lookup.php:139
 msgid "Fast Woo Order Lookup indexing failed."
 msgstr ""
 
-#: fast-woo-order-lookup.php:155
+#: fast-woo-order-lookup.php:140
 msgid "This happens with some WooCommerce plugins the author did not anticipate."
 msgstr ""
 
-#: fast-woo-order-lookup.php:156
+#: fast-woo-order-lookup.php:141
 msgid "Please create a"
 msgstr ""
 
-#: fast-woo-order-lookup.php:157
+#: fast-woo-order-lookup.php:142
 msgid "support topic"
 msgstr ""
 
-#: fast-woo-order-lookup.php:158
+#: fast-woo-order-lookup.php:143
 msgid "and paste your"
 msgstr ""
 
-#: fast-woo-order-lookup.php:159
+#: fast-woo-order-lookup.php:144
 msgid "Site Health - Info"
 msgstr ""
 
-#: fast-woo-order-lookup.php:160
+#: fast-woo-order-lookup.php:145
 msgid "contents into it. Then"
 msgstr ""
 
-#: fast-woo-order-lookup.php:161
+#: fast-woo-order-lookup.php:146
 msgid "deactivate"
 msgstr ""
 
-#: fast-woo-order-lookup.php:162
+#: fast-woo-order-lookup.php:147
 msgid "the plugin."
 msgstr ""
 
-#: fast-woo-order-lookup.php:181
+#: fast-woo-order-lookup.php:166
 msgid "See the"
 msgstr ""
 
-#: fast-woo-order-lookup.php:182
+#: fast-woo-order-lookup.php:167
 msgid "Scheduled Actions status page"
 msgstr ""
 
-#: fast-woo-order-lookup.php:183
+#: fast-woo-order-lookup.php:168
 msgid "for details."
 msgstr ""
 
-#: fast-woo-order-lookup.php:186
+#: fast-woo-order-lookup.php:171
 msgid "Fast Woo Order Lookup indexing begins soon."
 msgstr ""
 
-#: fast-woo-order-lookup.php:190
+#: fast-woo-order-lookup.php:175
 msgid "Fast Woo Order Lookup indexing still in progress."
 msgstr ""
 
 #. translators: 1: percent 12.3
-#: fast-woo-order-lookup.php:192
+#: fast-woo-order-lookup.php:177
 msgid "%1$s%% complete."
 msgstr ""

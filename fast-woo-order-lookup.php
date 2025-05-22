@@ -11,7 +11,7 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       1.1.7
+ * Version:       1.1.8
  * Requires PHP: 5.6
  * Requires at least: 5.8
  * Tested up to: 6.8
@@ -86,21 +86,6 @@ class FastWooOrderLookup {
 	public static function textdex_batch_action() {
 		$instance = self::getInstance();
 		$instance->textdex->load_batch();
-	}
-
-	/**
-	 * Filter: Data store name.
-	 *
-	 * @param string $store
-	 *
-	 * @return string
-	 */
-	public static function woocommerce_order_data_store( $store ) {
-		if ( 'WC_Order_Data_Store_CPT' === $store || 'WCS_Subscription_Data_Store_CPT' === $store ) {
-			self::getInstance();
-		}
-
-		return $store;
 	}
 
 	/** Singleton constructor interface.
@@ -431,7 +416,7 @@ class FastWooOrderLookup {
 const FAST_WOO_ORDER_LOOKUP_NAME          = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.1.7';
+const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.1.8';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE   = __FILE__;
@@ -454,9 +439,9 @@ register_deactivation_hook( __FILE__, 'Fast_Woo_Order_Lookup\deactivate' );
 
 add_action( 'before_woocommerce_init', array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'declare_hpos_compatible' ) );
 
-/* Don't do anything until WooCommerce does ->load( 'order' ). */
-add_action( 'woocommerce_order_data_store',
-	array( 'Fast_Woo_Order_Lookup\FastWooOrderLookup', 'woocommerce_order_data_store' ) );
+add_action( 'admin_init', function() {
+	FastWooOrderLookup::getInstance();
+}, 10, 0);
 
 /* Hook anything that changes an order object */
 add_action( 'woocommerce_new_order',

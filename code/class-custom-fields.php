@@ -63,7 +63,7 @@ class Custom_Fields {
 			$limit = apply_filters( 'postmeta_form_limit', 30 );
 			$keys  = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
 
-			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys );
+			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys, DAY_IN_SECONDS );
 		}
 
 		return $keys;

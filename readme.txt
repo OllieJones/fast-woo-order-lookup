@@ -7,8 +7,8 @@ Requires at least: 5.9
 Tested up to: 6.8.1
 Requires PHP: 5.6
 WC requires at least: 8.0
-WC tested up to: 9.8.3
-Stable tag: 1.1.7
+WC tested up to: 9.9.0
+Stable tag: 1.1.8
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -69,7 +69,7 @@ Generating the table seems to take about ten seconds (in the background) for eve
 
 = Does it work with High Performance Order Storage (HPOS)? =
 
-**Yes**.
+**Yes**. It also works with the performance enhancements in WooCommerce 9.9.0 and beyond. Alas, it is still required to get good performance with order search.
 
 = Does it work with pre-HPOS order storage? =
 
@@ -96,9 +96,13 @@ Follow the usual procedure for installing a plugin from the wordpress.org plugin
 
 == Upgrade Notice ==
 
-This version adds diagnostic information to the Info tab of your Site Health page. Including that information when you repoert a problem will help the author correct the problem.
+This version supports WooCommerce 9.9.0. And, it adds diagnostic information to the Info tab of your Site Health page. Including that information when you repoert a problem will help the author correct the problem.
 
 == Changelog ==
+
+= 1.1.8 = May 22, 2025 =
+
+Support 9.9.0.
 
 = 1.1.7 = April 25, 2025 =
 
