@@ -5,17 +5,17 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 **Contributors:**  OllieJones \
 **Tags:** woocommerce, search, orders, database, performance \
 **Requires at least:** 5.9 \
-**Tested up to:** 6.8 \
+**Tested up to:** 6.8.1 \
 **Requires PHP:** 5.6 \
 **WC requires at least:** 8.0 \
-**WC tested up to:** 9.8.2 \
-**Stable tag:** 1.1.7 \
+**WC tested up to:** 9.9.0 \
+**Stable tag:** 1.1.8
 Requires Plugins: woocommerce \
 **License:** GPLv2 \
 Text Domain: fast-woo-order-lookup \
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup \
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html \
-**Donate link:** https://github.com/sponsors/OllieJones \
+**Donate link:** https://github.com/sponsors/OllieJones ]
 
 Searches for orders faster on WooCommerce stores with many orders.
 
@@ -56,7 +56,7 @@ See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/3
 
 ### What's the fix?
 
-Build a [trigram lookup table](https://www.plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/#how-does-it-work-trigrams), maintain it, and use it for the queries.
+    Build a [trigram lookup table](https://www.plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/#how-does-it-work-trigrams), maintain it, and use it for the queries.
 
 ### How much space does the trigram lookup table take?
 
@@ -70,7 +70,7 @@ Generating the table seems to take about ten seconds (in the background) for eve
 
 ### Does it work with High Performance Order Storage (HPOS)?
 
-**Yes**.
+**Yes**. It also works with the performance enhancements in WooCommerce 9.9.0 and beyond. Alas, it is still required to get good performance with order search.
 
 ### Does it work with pre-HPOS order storage?
 
@@ -97,9 +97,13 @@ Follow the usual procedure for installing a plugin from the wordpress.org plugin
 
 ## Upgrade Notice
 
-This version adds diagnostic information to the Info tab of your Site Health page. Including that information when you repoert a problem will help the author correct the problem.
+This version supports WooCommerce 9.9.0. And, it adds diagnostic information to the Info tab of your Site Health page. Including that information when you repoert a problem will help the author correct the problem.
 
 ## Changelog
+
+= 1.1.8 = May 22, 2025 =
+
+Support 9.9.0.
 
 = 1.1.7 = April 25, 2025 =
 
@@ -116,15 +120,3 @@ Improve Site Health Info.
 ### 1.1.4 April 5, 2025
 
 Handle a COUNT(*) query in support of pagination.
-
-### 1.1.3 October 7, 2024
-
-Handle tables and colums with character sets other than $wpdb->charset.
-
-### 1.1.1 August 12, 2024
-
-* Limit batch runtime to 25 seconds. Include a cronjob shell script to purge stale ActionScheduler actions.
-
-### 1.1.0 August 11, 2024
-
-* Some MariaDB / MySQL versions implicitly cast integers to latin1 strings causing problems. Explicit casting fixes the issue.

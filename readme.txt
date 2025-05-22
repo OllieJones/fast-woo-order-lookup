@@ -120,14 +120,3 @@ Improve Site Health Info.
 
 Handle a COUNT(*) query in support of pagination.
 
-= 1.1.3 October 7, 2024 =
-
-Handle tables and colums with character sets other than $wpdb->charset.
-
-= 1.1.1 August 12, 2024 =
-
-* Limit batch runtime to 25 seconds. Include a cronjob shell script to purge stale ActionScheduler actions.
-
-= 1.1.0 August 11, 2024 =
-
-* Some MariaDB / MySQL versions implicitly cast integers to latin1 strings causing problems. Explicit casting fixes the issue.
