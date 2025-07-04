@@ -9,7 +9,7 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 **Requires PHP:** 5.6 \
 **WC requires at least:** 8.0 \
 **WC tested up to:** 9.9.0 \
-**Stable tag:** 1.1.8
+**Stable tag:** 1.1.9 \
 Requires Plugins: woocommerce \
 **License:** GPLv2 \
 Text Domain: fast-woo-order-lookup \

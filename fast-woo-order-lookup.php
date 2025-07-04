@@ -130,6 +130,7 @@ class FastWooOrderLookup {
 
 		add_action( 'admin_notices', array( $this, 'show_status' ), 10, 0 );
 		add_action( 'shutdown', array( $this, 'update_textdex' ), 1, 0 );
+		add_filter( 'plugin_row_meta', array( $this, 'filter_plugin_row_meta' ), 10, 2 );
 	}
 
 	public function show_status() {
@@ -409,6 +410,27 @@ class FastWooOrderLookup {
 			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys );
 		}
 	}
+	/**
+	 * Filters the array of row meta for each plugin in the Plugins list table.
+	 *
+	 * @param array<int, string> $plugin_meta An array of the plugin's metadata.
+	 * @param string             $plugin_file Path to the plugin file relative to the plugins directory.
+	 * @return array<int, string> Updated array of the plugin's metadata.
+	 */
+	public function filter_plugin_row_meta( array $plugin_meta, $plugin_file ) {
+		if ( FAST_WOO_ORDER_LOOKUP_PLUGIN_BASE !== $plugin_file ) {
+			return $plugin_meta;
+		}
+
+		$plugin_meta[] = sprintf(
+			'<a href="%1$s"><span class="dashicons dashicons-star-filled" aria-hidden="true" style="font-size:14px;line-height:1.3"></span>%2$s</a>',
+			'https://github.com/sponsors/OllieJones',
+			esc_html_x( 'Sponsor', 'verb', 'index-wp-users-for-speed' )
+		);
+
+		return $plugin_meta;
+	}
+
 
 }
 
@@ -416,7 +438,7 @@ class FastWooOrderLookup {
 const FAST_WOO_ORDER_LOOKUP_NAME          = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.1.8';
+const FAST_WOO_ORDER_LOOKUP_VERSION       = '1.1.9';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE   = __FILE__;

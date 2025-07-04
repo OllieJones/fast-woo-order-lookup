@@ -538,6 +538,10 @@ QUERY;
 	 */
 	public function capture_query( $query, $type, $is_error ) {
 		global $wpdb;
+		/* Suppress logging of search queries, turned out to be useless */
+		if ('search' === $type ) {
+			return false;
+		}
 		$dberror = false;
 		$msg     = array();
 		$msg []  = current_time( 'mysql', false );
