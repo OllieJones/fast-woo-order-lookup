@@ -8,7 +8,7 @@ Tested up to: 6.8.1
 Requires PHP: 5.6
 WC requires at least: 8.0
 WC tested up to: 9.9.5
-Stable tag: 1.1.9
+Stable tag: 1.1.10
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -101,7 +101,7 @@ This version supports WooCommerce 9.9.5. And, it adds diagnostic information to 
 == Changelog ==
 
 
-= 1.1.9 = July 3, 2025 =
+= 1.1.10 = July 3, 2025 =
 
 Less aggressive logging, WooCommerce 9.9.5.
 
