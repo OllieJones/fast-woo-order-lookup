@@ -19,7 +19,7 @@ class Textdex {
 	/** @var int The maximum number of tuples per insert */
 	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 200;
+	private $batch_size = 500;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;

@@ -8,14 +8,14 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 **Tested up to:** 6.8.1 \
 **Requires PHP:** 5.6 \
 **WC requires at least:** 8.0 \
-**WC tested up to:** 9.9.0 \
+**WC tested up to:** 9.9.5 \
 **Stable tag:** 1.1.9 \
 Requires Plugins: woocommerce \
 **License:** GPLv2 \
-Text Domain: fast-woo-order-lookup \
+Text Domain: fast-woo-order-lookup
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup \
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html \
-**Donate link:** https://github.com/sponsors/OllieJones ]
+**Donate link:** https://github.com/sponsors/OllieJones \
 
 Searches for orders faster on WooCommerce stores with many orders.
 
@@ -97,9 +97,13 @@ Follow the usual procedure for installing a plugin from the wordpress.org plugin
 
 ## Upgrade Notice
 
-This version supports WooCommerce 9.9.0. And, it adds diagnostic information to the Info tab of your Site Health page. Including that information when you repoert a problem will help the author correct the problem.
+This version supports WooCommerce 9.9.5. And, it adds diagnostic information to the Info tab of your Site Health page. Including that information when you repoert a problem will help the author correct the problem.
 
 ## Changelog
+
+= 1.1.9 = July 3, 2025 =
+
+Less aggressive logging, WooCommerce 9.9.5.
 
 = 1.1.8 = May 22, 2025 =
 
