@@ -9,7 +9,7 @@ use stdClass;
 class Textdex {
 
 	/** @var bool Set this to true for debugging, to run without ActionScheduler. */
-	private $debug_run_sync = true;  //HACK HACK
+	private $debug_run_sync = false;
 
 	const FAST_WOO_ORDER_LOOKUP_INDEXING_ERROR_TRANSIENT_NAME = 'fast_woo_order_lookup_indexing_error';
 	private $tablename;
@@ -22,7 +22,7 @@ class Textdex {
 	/** @var int The maximum number of tuples per insert */
 	private $trigram_batch_size = 250;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 10; //HACK HACK
+	private $batch_size = 500;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
@@ -215,19 +215,21 @@ TABLE;
 		if ( is_string( $textdex_status['error'] ) || $textdex_status['current'] >= $textdex_status['last'] ) {
 			return false;
 		}
-		$first = $textdex_status['current'];
-		$last  = $textdex_status['last'];
-		// HACK HACK $first = $this->get_next_order_number ( $first );
-		$first = null === $first ? $last : $first;
-		$last  = min( $first + $textdex_status['batch'], $last );
-
-		$this->debug_run_sync && error_log( "Batch: $first $last" );
-
-		$trigram_count = $textdex_status['trigram_batch'];
 
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( 'BEGIN;' );
+
+		$batch   = $textdex_status['batch'];
+		$last    = $textdex_status['last'];       /* One greater than the last order ID to process */
+		$current = $textdex_status['current'];  /* The next order ID to process */
+		$next    = $this->get_next_order_number( $current );
+		$first   = null === $next ? $last : $next;
+		$last    = min( $first + $batch, $last );
+
+		$this->debug_run_sync && error_log( "Batch: $first $last" );
+
+		$trigram_count = $textdex_status['trigram_batch'];
 
 		$resultset = $this->get_order_metadata( $first, $last );
 		if ( is_string( $resultset ) ) {
@@ -255,6 +257,8 @@ TABLE;
 			return $textdex_status['current'] < $textdex_status['last'];
 		} else {
 			/* The resultset was not valid. */
+			$wpdb->query( 'ROLLBACK;' );
+
 			return false;
 		}
 	}
@@ -881,18 +885,18 @@ QUERY;
 	/**
 	 * Find the start of the next batch of orders.
 	 *
-	 * @param string $first The current order number.
+	 * @param int $first The current order number.
 	 *
-	 * @return string|null The lowest order number greater than or equal to current.
+	 * @return int|null The lowest order number greater than or equal to $first. null if none such.
 	 */
 	private function get_next_order_number( $first ) {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_var( $wpdb->prepare(
-			'SELECT MIN(id) FROM ' . $wpdb->prefix . 'wc_orders WHERE id >= %d',
-			$first
-		) );
+		return 0 + $wpdb->get_var( $wpdb->prepare(
+				'SELECT MIN(id) FROM ' . $wpdb->prefix . 'wc_orders WHERE id >= %d',
+				$first
+			) );
 
 	}
 
