@@ -7,8 +7,8 @@ Requires at least: 5.9
 Tested up to: 6.8.1
 Requires PHP: 5.6
 WC requires at least: 8.0
-WC tested up to: 9.9.5
-Stable tag: 1.1.10
+WC tested up to: 10.2.1
+Stable tag: 1.1.11
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -94,12 +94,15 @@ Wise owners of rapidly growing stores return regularly to examine their site per
 
 Follow the usual procedure for installing a plugin from the wordpress.org plugin repository.
 
-== Upgrade Notice ==
+## Upgrade Notice
 
-This version supports WooCommerce 9.9.5. And, it adds diagnostic information to the Info tab of your Site Health page. Including that information when you repoert a problem will help the author correct the problem.
+This version supports WooCommerce 10.2.1. It improves indexing by skipping gaps in order numbers. Props to StefT1 on GitHub.
 
-== Changelog ==
+## Changelog
 
+= 1.1.11 = September 24, 2025 =
+
+WooCommerce 10.2.1, Gap skipping when indexing. Props to StefT1 on GitHub.
 
 = 1.1.10 = July 3, 2025 =
 
