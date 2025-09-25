@@ -103,7 +103,7 @@ This version supports WooCommerce 10.2.1. It improves indexing by skipping gaps 
 
 = 1.1.11 = September 24, 2025 =
 
-WooCommerce 10.2.1, Gap skipping when indexing. Props to https://github.com/StefT1 .
+WooCommerce 10.2.1, Gap skipping when indexing, and edge case bugfix. Props to StefT1 on GitHub.
 
 = 1.1.10 = July 3, 2025 =
 
