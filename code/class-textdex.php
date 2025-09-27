@@ -20,9 +20,9 @@ class Textdex {
 	/** @var string Name of this plugin's option. */
 	public $option_name;
 	/** @var int The maximum number of tuples per insert */
-	private $trigram_batch_size = 250;
+	private $trigram_batch_size = 200;
 	/** @var int The number of posts per metadata query batch. */
-	private $batch_size = 500;
+	private $order_batch_size = 100;
 
 	private $attempted_inserts = 0;
 	private $actual_inserts = 0;
@@ -30,6 +30,13 @@ class Textdex {
 	private $alias_chars = 'abcdefghijklmnopqrstuvwxyz';
 
 	public function __construct() {
+		$this->trigram_batch_size = defined( 'FAST_WOO_ORDER_LOOKUP_TRIGRAM_BATCH_SIZE' )
+			? 0 + FAST_WOO_ORDER_LOOKUP_TRIGRAM_BATCH_SIZE
+			: $this->trigram_batch_size;
+		$this->order_batch_size   = defined( 'FAST_WOO_ORDER_LOOKUP_ORDER_BATCH_SIZE' )
+			? 0 + FAST_WOO_ORDER_LOOKUP_ORDER_BATCH_SIZE
+			: $this->order_batch_size;
+
 		global $wpdb;
 		$this->tablename            = $wpdb->prefix . 'fwol';
 		$this->meta_keys_to_monitor = array(
@@ -77,7 +84,12 @@ TABLE;
 			$result = $wpdb->query( $table );
 			if ( false === $result ) {
 				if ( ! str_contains( $wpdb->last_error, 'already exists' ) ) {
-					$wpdb->bail( 'Table creation failure ' );
+					$this->store_message( 'Table creation error: ' . $wpdb->last_error );
+					$textdex_status          = $this->get_option();
+					$textdex_status['error'] = 'Table creation error: ' . $wpdb->last_error;
+					$this->update_option( $textdex_status );
+				} else {
+					$wpdb->query( 'TRUNCATE TABLE ' . $tablename );
 				}
 			}
 			unset ( $textdex_status['new'] );
@@ -732,7 +744,10 @@ QUERY;
 			$status = $wpdb->query( $query );
 
 			if ( false === $status ) {
-				$wpdb->bail( 'Trigram insertion failure' );
+				$this->store_message( 'Trigram insertion error: ' . $wpdb->last_error );
+				$textdex_status          = $this->get_option();
+				$textdex_status['error'] = 'Trigram insertion error: ' . $wpdb->last_error;
+				$this->update_option( $textdex_status );
 			}
 		}
 	}
@@ -745,7 +760,7 @@ QUERY;
 			array(
 				'new'           => true,
 				'current'       => 0,
-				'batch'         => $this->batch_size,
+				'batch'         => $this->order_batch_size,
 				'trigram_batch' => $this->trigram_batch_size,
 				'last'          => - 1,
 				'version'       => FAST_WOO_ORDER_LOOKUP_VERSION,
@@ -784,10 +799,14 @@ QUERY;
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $query );
 		if ( false === $result ) {
-			$wpdb->bail( 'inserts failure' );
+			$this->store_message( 'Trigram insertion error: ' . $wpdb->last_error );
+			$textdex_status          = $this->get_option();
+			$textdex_status['error'] = 'Trigram insertion error: ' . $wpdb->last_error;
+			$this->update_option( $textdex_status );
+		} else {
+			$this->attempted_inserts += count( $trigrams );
+			$this->actual_inserts    += $result;
 		}
-		$this->attempted_inserts += count( $trigrams );
-		$this->actual_inserts    += $result;
 	}
 
 	/**

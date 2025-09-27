@@ -94,15 +94,25 @@ Wise owners of rapidly growing stores return regularly to examine their site per
 
 Follow the usual procedure for installing a plugin from the wordpress.org plugin repository.
 
+When you activate the plugin, it creates the trigram index. As it does so it processes orders in batches of 100 and inserts trigrams in batches of 200. Larger batch sizes make the indexing process more efficient, but they do consume server RAM while running.
+
+You can, if need be, change these batch sizes in your `wp-config.php` file. If you do this, do so *before* you activate the plugin. Here are examples.
+
+`define( 'FAST_WOO_ORDER_LOOKUP_ORDER_BATCH_SIZE', 200 );` changes the order batch size to 200.
+
+`define( 'FAST_WOO_ORDER_LOOKUP_TRIGRAM_BATCH_SIZE', 500 );` changes the trigram batch size to 500
 ## Upgrade Notice
 
-This version supports WooCommerce 10.2.1. It improves indexing by skipping gaps in order numbers. Props to StefT1 on GitHub.
+* This version supports WooCommerce 10.2.1.
+* It fixes a defect that caused indexing to malfunction sometimes.
+* It is now possible to control the batch sizes for indexing by setting `wp-config.php` constants *before activating* the plugin. See [Installation](#installation).
+* It improves indexing performance by skipping gaps in order numbers.
 
 ## Changelog
 
 = 1.1.11 = September 24, 2025 =
 
-WooCommerce 10.2.1, Gap skipping when indexing, and edge case bugfix. Props to StefT1 on GitHub.
+WooCommerce 10.2.1, indexing defect fixed, gap skipping when indexing. Props to StefT1 on GitHub.
 
 = 1.1.10 = July 3, 2025 =
 
