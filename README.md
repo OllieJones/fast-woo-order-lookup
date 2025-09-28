@@ -58,9 +58,25 @@ See this [WooCommerce issue](https://github.com/woocommerce/woocommerce/issues/3
 
     Build a [trigram lookup table](https://www.plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/#how-does-it-work-trigrams), maintain it, and use it for the queries.
 
-### How much space does the trigram lookup table take?
+### How much space does the lookup table -- `wp_fwol` -- take?
 
-It takes about 5-10KiB per order, as MariaDB / MySQL database storage, counting both data and indexes. So, if your site has a million orders, the table will take something like 5-10 GiB.
+It takes about 5-10KiB per order, as MariaDB / MySQL database storage, counting both data and indexes. So, if your site has a million orders, the table will take something like 5-10 GiB. The rows of the table are each quite small, just three letters and an order ID. And there are many of those rows for each order.
+
+The table, named with an abbreviation for "Fast Woo Order Lookup", contains the trigram lookups. It has a terse name to keep queries short. It is dropped automatically if you deactivate the plugin.
+
+### Can it get so large this plugin becomes useless or counterproductive?
+
+**No, unless your database tablespace is too small for it.**
+
+This answer uses the [Big **O**](https://en.wikipedia.org/wiki/Big_O_notation) conceptual way of understanding program performance.
+
+The table is organized by its primary key so this plugin can search for orders with **O**(log n) computational complexity.  That means if searching 100 orders takes two seconds, then searching 1000 takes about three seconds and 10,000 about four. So it will work at large scale.  And without this plugin the complexity of the order search in WooCommerce is a quite unpleasant **O**(n).   Ten times as many orders take ten times as long to search. So, 100 times as many take 100 times as long. Used at large scale that gets nasty. It burns server electricity. Just as importantly, it wastes users' time.
+
+That's true even if you use a nice search plugin like [Relevanssi](https://wordpress.org/plugins/relevanssi/) to help your customers search for products. The author does that. It works. But not on orders.
+
+This plugin improves order search performance by using a better algorithm. It's the InnoDB team we have to thank for this in MariaDB and MySQL. Legendary.  (See, Dr. Knuth? Somebody read your book!)
+
+If your hosting service is such a cheapskate you don't have the tablespace for the table, that might be a reason to avoid this plugin.
 
 ### How long does it take to generate trigram lookup table?
 
@@ -80,10 +96,6 @@ Generating the table seems to take about ten seconds (in the background) for eve
 
 1. Let the author know by creating an issue at https://github.com/OllieJones/fast-woo-order-lookup/issues
 2. Deactivate, then activate the plugin. This rebuilds the lookup table.
-
-### What is this wp_fwol table created by the plugin?
-
-This table, named with an abbreviation for "Fast Woo Order Lookup", contains the trigram lookups. It has a terse name to keep queries short. It is dropped automatically if you deactivate the plugin.
 
 ### My store only has a few hundred orders. Do I need this plugin ?
 
