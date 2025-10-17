@@ -5,11 +5,11 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 **Contributors:**  OllieJones \
 **Tags:** woocommerce, search, orders, database, performance \
 **Requires at least:** 5.9 \
-**Tested up to:** 6.8.1 \
+**Tested up to:** 6.8.3 \
 **Requires PHP:** 5.6 \
 **WC requires at least:** 8.0 \
 **WC tested up to:** 10.2.1 \
-**Stable tag:** 1.1.11 \
+**Stable tag:** 1.2.0 \
 Requires Plugins: woocommerce \
 **License:** GPLv2 \
 Text Domain: fast-woo-order-lookup \
@@ -27,7 +27,7 @@ Upon activation this plugin uses ActionScheduler to run a background process to 
 
 The downside: the trigram table takes database space and takes time to generate.
 
-The orders page itself contains a slow query to look up meta_keys. This fixes that query's performance too.
+The orders page itself contains a slow query to look up meta_keys. This fixes that query's performance too, using a cache of available values.
 
 <h4>If you have problems</h4>
 
@@ -99,7 +99,7 @@ Generating the table seems to take about ten seconds (in the background) for eve
 
 ### My store only has a few hundred orders. Do I need this plugin ?
 
-This plugin addresses database performance problems that only show themselves on stores with many tens of thousands of orders. If your store is smaller than that you probably don't need it.
+This plugin addresses database performance problems that only show themselves on stores with many thousands of orders. If your store is smaller than that you probably don't need it.
 
 Wise owners of rapidly growing stores return regularly to examine their site performance. If your site is still small, it's better to wait until you actually need performance-enhancing plugins and other features. Installing them "just in case" is ineffective.
 
@@ -121,32 +121,18 @@ You can, if need be, change these batch sizes in your `wp-config.php` file. If y
 * It is now possible to control the batch sizes for indexing by setting `wp-config.php` constants *before activating* the plugin. See [Installation](#installation).
 * It improves indexing performance by skipping gaps in order numbers.
 
+## Upgrade Notice
+
+Recent versions correct intermittent problems generating the index and maintaining the postmeta key cache.
+
+Thanks to my loyal users for bringing these problems to my attention!
+
 ## Changelog
+
+= 1.2.0 = October 17, 2025
+
+Correct an intermittent problem maintaining the postmeta key cache. Props tp slservice33 on w.org.
 
 = 1.1.11 = September 24, 2025 =
 
 WooCommerce 10.2.1, indexing defect fixed, gap skipping when indexing. Props to StefT1 on GitHub.
-
-= 1.1.10 = July 3, 2025 =
-
-Less aggressive logging, WooCommerce 9.9.5.
-
-= 1.1.8 = May 22, 2025 =
-
-Support 9.9.0.
-
-= 1.1.7 = April 25, 2025 =
-
-Fix memory leak in logging.
-
-= 1.1.6 = April 11, 2025 =
-
-Fix memory leak in logging.
-
-### 1.1.5 April 9, 2025
-
-Improve Site Health Info.
-
-### 1.1.4 April 5, 2025
-
-Handle a COUNT(*) query in support of pagination.

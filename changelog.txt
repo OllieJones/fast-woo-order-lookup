@@ -1,3 +1,27 @@
+= 1.1.10 = July 3, 2025 =
+
+Less aggressive logging, WooCommerce 9.9.5.
+
+= 1.1.8 = May 22, 2025 =
+
+Support 9.9.0.
+
+= 1.1.7 = April 25, 2025 =
+
+Fix memory leak in logging.
+
+= 1.1.6 = April 11, 2025 =
+
+Fix memory leak in logging.
+
+= 1.1.5 April 9, 2025 =
+
+Improve Site Health Info.
+
+= 1.1.4 April 5, 2025 =
+
+Handle a COUNT(*) query in support of pagination.
+
 = 1.1.3 October 7, 2024 =
 
 Handle tables and colums with character sets other than $wpdb->charset.

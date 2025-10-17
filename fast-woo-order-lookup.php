@@ -11,10 +11,10 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       1.1.11
+ * Version:       1.2.0
  * Requires PHP: 5.6
  * Requires at least: 5.8
- * Tested up to: 6.8
+ * Tested up to: 6.8.3
  * WC requires at least: 4.0
  * WC tested up to: 9.1.4
  * Requires Plugins: woocommerce
@@ -219,7 +219,6 @@ class FastWooOrderLookup
         }
     }
 
-
     /**
      * Filter. immediately before metadata search.
      *
@@ -410,23 +409,22 @@ class FastWooOrderLookup
         return $cust->get_order_custom_field_names();
     }
 
-    private function update_meta_keys(array $orders)
-    {
-        $cached_keys = get_transient(FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE);
-        if (!is_array($cached_keys)) {
+    private function update_meta_keys( array $orders ) {
+        $cached_keys = get_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE );
+        if ( ! is_array( $cached_keys ) ) {
             return;
         }
         $changed = false;
-        foreach ($orders as $order_id) { //TODO we should check whether this is actually a WC_Order
-            if ($order_id) {
-                $order = wc_get_order($order_id);
-                if (false !== $order) {
-                    $metas = wc_get_container()->get(OrdersTableDataStoreMeta::class)->read_meta($order);
-                    foreach ($metas as $meta) {
+        foreach ( $orders as $order_id ) {
+            if ( $order_id ) {
+                $order = wc_get_order( $order_id );
+                if ( $order instanceof WC_Order ) {
+                    $metas = wc_get_container()->get( OrdersTableDataStoreMeta::class )->read_meta( $order );
+                    foreach ( $metas as $meta ) {
                         $meta_key = $meta->meta_key;
-                        if (!str_starts_with($meta_key, '_')) {
-                            if (!in_array($meta_key, $cached_keys)) {
-                                $changed = true;
+                        if ( ! str_starts_with( $meta_key, '_' ) ) {
+                            if ( ! in_array( $meta_key, $cached_keys ) ) {
+                                $changed        = true;
                                 $cached_keys [] = $meta_key;
                             }
                         }
@@ -434,8 +432,8 @@ class FastWooOrderLookup
                 }
             }
         }
-        if ($changed) {
-            set_transient(FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys);
+        if ( $changed ) {
+            set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $cached_keys );
         }
     }
 
@@ -469,7 +467,7 @@ class FastWooOrderLookup
 const FAST_WOO_ORDER_LOOKUP_NAME = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION = '1.1.11';
+const FAST_WOO_ORDER_LOOKUP_VERSION = '1.2.0';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE = __FILE__;
