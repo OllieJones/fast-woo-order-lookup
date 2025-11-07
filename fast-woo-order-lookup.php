@@ -11,11 +11,11 @@
  * Plugin Name:   Fast Woo Order Lookup
  * Plugin URI:    https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
- * Version:       1.2.0
+ * Version:       1.2.1
  * Requires PHP: 5.6
  * Requires at least: 5.8
  * Tested up to: 6.8.3
- * WC requires at least: 4.0
+ * WC requires at least: 8.0
  * WC tested up to: 9.1.4
  * Requires Plugins: woocommerce
  * Author:        Ollie Jones
@@ -467,7 +467,7 @@ class FastWooOrderLookup
 const FAST_WOO_ORDER_LOOKUP_NAME = 'Fast Woo Order Lookup';
 
 // Plugin version
-const FAST_WOO_ORDER_LOOKUP_VERSION = '1.2.0';
+const FAST_WOO_ORDER_LOOKUP_VERSION = '1.2.1';
 
 // Plugin Root File
 const FAST_WOO_ORDER_LOOKUP_PLUGIN_FILE = __FILE__;

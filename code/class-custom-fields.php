@@ -8,6 +8,8 @@ use Automattic\WooCommerce\Internal\DataStores\Orders\OrdersTableDataStoreMeta;
 use stdClass;
 
 class Custom_Fields {
+
+	private $filtering = false;
 	public function __construct() {
 	}
 
@@ -47,7 +49,8 @@ class Custom_Fields {
 	}
 
 	/**
-	 * Retrieve the
+	 * Retrieve the custom field names.
+	 *
 	 * @return array
 	 */
 	public function get_order_custom_field_names() {
@@ -55,13 +58,31 @@ class Custom_Fields {
 		if ( is_array( $cached_keys ) ) {
 			return $cached_keys;
 		} else {
-			if ( @version_compare( WOOCOMMERCE_VERSION, '9.0.0', '<' ) ) {
-				/* we are in WooCommerce < 9.0.0 someplace, mung the queries to come */
-				$this->filtering = true;
-				add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
-			}
 			$limit = apply_filters( 'postmeta_form_limit', 30 );
-			$keys  = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
+			$orders_meta = wc_get_container()->get( OrdersTableDataStoreMeta::class );
+			if ( method_exists( $orders_meta, 'get_meta_keys' ) ) {
+				if ( @version_compare( WOOCOMMERCE_VERSION, '9.0.0', '<' ) ) {
+					/* we are in WooCommerce < 9.0.0 someplace, mung the queries to come */
+					$this->filtering = true;
+					add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
+				}
+				$keys = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
+			} else {
+				global $wpdb;
+				$keys = $wpdb->get_col(
+					$wpdb->prepare(
+						"SELECT DISTINCT meta_key
+				FROM $wpdb->postmeta
+				WHERE meta_key NOT BETWEEN '_' AND '_z'
+				AND meta_key != ''
+				AND meta_key NOT LIKE %s
+				ORDER BY meta_key
+				LIMIT %d",
+						$wpdb->esc_like( '_' ) . '%',
+						$limit
+					)
+				);
+			}
 
 			set_transient( FAST_WOO_ORDER_LOOKUP_METAKEY_CACHE, $keys, DAY_IN_SECONDS );
 		}

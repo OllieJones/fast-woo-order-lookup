@@ -8,7 +8,7 @@ Tested up to: 6.8.3
 Requires PHP: 5.6
 WC requires at least: 8.0
 WC tested up to: 10.2.1
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -122,11 +122,15 @@ You can, if need be, change these batch sizes in your `wp-config.php` file. If y
 
 == Upgrade Notice ==
 
-Recent versions correct intermittent problems generating the index and maintaining the postmeta key cache.
+Recent versions correct intermittent problems generating the index and maintaining the postmeta key cache, and handle legacy WooCommerce versions.
 
 Thanks to my loyal users for bringing these problems to my attention!
 
 == Changelog ==
+
+= 1.2.1 = November 7, 2025
+
+Support legacy WooCommerce back to 8.1.
 
 = 1.2.0 = October 17, 2025
 
