@@ -9,13 +9,13 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-11-06T13:28:08-05:00\n"
+"POT-Creation-Date: 2025-11-11T16:44:51-05:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.9.0\n"
 "X-Domain: fast-woo-order-lookup\n"
 
 #. Plugin Name of the plugin
-#: code/class-textdex.php:693
+#: code/class-textdex.php:687
 msgid "Fast Woo Order Lookup"
 msgstr ""
 
@@ -35,44 +35,52 @@ msgstr ""
 msgid "https://github.com/OllieJones"
 msgstr ""
 
-#: code/class-textdex.php:613
+#: code/class-textdex.php:612
 msgid "Operation"
 msgstr ""
 
-#: code/class-textdex.php:669
+#: code/class-textdex.php:655
 msgid "Explanation"
 msgstr ""
 
-#: code/class-textdex.php:670
+#: code/class-textdex.php:656
 msgid "Errors sometimes occur while the plugin is creating its index table. Variations in database server make and version, and your WordPress version when you created it cause these. The plugin author will add suppot for your variation if you open a support topic."
 msgstr ""
 
-#: code/class-textdex.php:671
+#: code/class-textdex.php:657
 msgid "And sometimes some types of orders cannot be found. Search for the failing orders and return here to capture useful troubleshooting information."
 msgstr ""
 
-#: code/class-textdex.php:676
+#: code/class-textdex.php:662
 msgid "Request"
 msgstr ""
 
-#: code/class-textdex.php:677
-#: code/class-textdex.php:679
+#: code/class-textdex.php:663
+#: code/class-textdex.php:665
 msgid "Please create a support topic at"
 msgstr ""
 
-#: code/class-textdex.php:678
+#: code/class-textdex.php:664
 msgid "Click [Copy Site Info To Clipboard] then paste your site info into the topic."
 msgstr ""
 
-#: code/class-textdex.php:680
+#: code/class-textdex.php:666
 msgid "and paste this site info (all of it please) into the topic. We will take a look."
 msgstr ""
 
-#: code/class-textdex.php:684
+#: code/class-textdex.php:670
+msgid "Configuration"
+msgstr ""
+
+#: code/class-textdex.php:674
+msgid "Memory Usage"
+msgstr ""
+
+#: code/class-textdex.php:678
 msgid "WooCommerce Features"
 msgstr ""
 
-#: code/class-textdex.php:688
+#: code/class-textdex.php:682
 msgid "Trigram Table"
 msgstr ""
 

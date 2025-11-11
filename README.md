@@ -12,10 +12,10 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 **Stable tag:** 1.2.1 \
 Requires Plugins: woocommerce \
 **License:** GPLv2 \
-Text Domain: fast-woo-order-lookup  \
+Text Domain: fast-woo-order-lookup \
 Github Plugin URI: https://github.com/OllieJones/fast-woo-order-lookup \
 **License URI:** https://www.gnu.org/licenses/gpl-2.0.html \
-**Donate link:** https://github.com/sponsors/OllieJones \
+**Donate link:** https://github.com/sponsors/OllieJones
 
 Searches for orders faster on WooCommerce stores with many orders.
 
@@ -121,17 +121,21 @@ You can, if need be, change these batch sizes in your `wp-config.php` file. If y
 * It is now possible to control the batch sizes for indexing by setting `wp-config.php` constants *before activating* the plugin. See [Installation](#installation).
 * It improves indexing performance by skipping gaps in order numbers.
 
-## Upgrade Notice
+== Upgrade Notice ==
 
-Recent versions correct intermittent problems generating the index and maintaining the postmeta key cache, and handle legacy WooCommerce versions.
+Recent versions correct intermittent problems and deadlocks generating the index and maintaining the postmeta key cache, and handle legacy WooCommerce versions.
 
 Thanks to my loyal users for bringing these problems to my attention!
 
-## Changelog
+== Changelog ==
 
-= 1.2.1 = November 7, 2025
+= 1.2.1 = November 11, 2025
 
-Support legacy WooCommerce back to 8.1.
+* Support legacy WooCommerce back to 8.1.
+
+* Track RAM usage.
+
+* Mitigate deadlocks
 
 = 1.2.0 = October 17, 2025
 

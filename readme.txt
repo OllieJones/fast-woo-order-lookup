@@ -122,15 +122,19 @@ You can, if need be, change these batch sizes in your `wp-config.php` file. If y
 
 == Upgrade Notice ==
 
-Recent versions correct intermittent problems generating the index and maintaining the postmeta key cache, and handle legacy WooCommerce versions.
+Recent versions correct intermittent problems and deadlocks generating the index and maintaining the postmeta key cache, and handle legacy WooCommerce versions.
 
 Thanks to my loyal users for bringing these problems to my attention!
 
 == Changelog ==
 
-= 1.2.1 = November 7, 2025
+= 1.2.1 = November 11, 2025
 
-Support legacy WooCommerce back to 8.1.
+* Support legacy WooCommerce back to 8.1.
+
+* Track RAM usage.
+
+* Mitigate deadlocks
 
 = 1.2.0 = October 17, 2025
 

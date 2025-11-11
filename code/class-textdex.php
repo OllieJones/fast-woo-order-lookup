@@ -128,10 +128,9 @@ TABLE;
 		/* Give ourselves max_execution_time -10 sec to run, unless max_execution_time is very short. */
 		$max_time  = ini_get( 'max_execution_time' );
 		$max_time  = ( $max_time > 30 ) ? 30 : $max_time;
-		$safe_time = ( $max_time > 30 ) ? 5 : 2;
+		$safe_time = ( $max_time > 10 ) ? 5 : 2;
 		$end_time  = $start_time + $max_time - $safe_time;
 		$end_time  = ( $end_time > $start_time ) ? $end_time : $start_time + 1;
-		set_time_limit( $max_time );
 
 		/* Do the field name cache (this is idempotent) */
 		$cust = new Custom_Fields();
@@ -149,9 +148,14 @@ TABLE;
 				$done = true;
 				continue;
 			}
-			set_time_limit( $max_time );
+			$mem = memory_get_usage();
+			$lim = $this->memory_get_limit();
+			if ( $mem >= $lim * 0.9 ) {
+				$done = true;
+				$this->capture_query( 'Indexing used a lot of memory', 'event', false );
+				continue;
+			}
 		}
-		delete_transient( 'fast_woo_order_lookup_scheduled' );
 		if ( $another_batch ) {
 			$this->schedule_batch();
 		} else {
@@ -165,7 +169,9 @@ TABLE;
 			if ( $this->debug_run_sync ) {
 				$this->load_batch();
 			} else {
-				as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup', true );
+				if ( ! as_has_scheduled_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup' ) ) {
+					as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup', true );
+				}
 			}
 		}
 	}
@@ -229,17 +235,15 @@ TABLE;
 		}
 
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query( 'BEGIN;' );
-
 		$batch   = $textdex_status['batch'];
 		$last    = $textdex_status['last'];       /* One greater than the last order ID to process */
 		$current = $textdex_status['current'];  /* The next order ID to process */
 		$next    = $this->get_next_order_number( $current );
 		$first   = null === $next ? $last : $next;
 		$last    = min( $first + $batch, $last );
+		$memory  = $this->memory_get_usage_display();
 
-		$this->debug_run_sync && error_log( "Batch: $first $last" );
+		$this->debug_run_sync && error_log( "Batch: $first $last $memory" );
 
 		$trigram_count = $textdex_status['trigram_batch'];
 
@@ -247,7 +251,6 @@ TABLE;
 		if ( is_string( $resultset ) ) {
 			$textdex_status['error'] = $resultset;
 			$this->update_option( $textdex_status );
-			$wpdb->query( 'ROLLBACK;' );
 
 			return false;
 		} else if ( is_array( $resultset ) ) {
@@ -261,15 +264,12 @@ TABLE;
 			}
 			$this->do_insert_statement( $trigrams );
 			unset ( $resultset, $trigrams );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->query( 'COMMIT;' );
 			$textdex_status['current'] = $last;
 			$this->update_option( $textdex_status );
 
 			return $textdex_status['current'] < $textdex_status['last'];
 		} else {
 			/* The resultset was not valid. */
-			$wpdb->query( 'ROLLBACK;' );
 
 			return false;
 		}
@@ -418,6 +418,8 @@ TABLE;
 		$textdex_status       = $this->get_option();
 		$textdex_status_dirty = false;
 
+		sort( $order_ids );
+
 		foreach ( $order_ids as $order_id ) {
 			$original               = $textdex_status['last'];
 			$textdex_status['last'] = max( $textdex_status['last'], $order_id + 1 );
@@ -437,19 +439,15 @@ TABLE;
 		}
 
 		if ( $this->is_ready() ) {
-			/* Do this all at once to avoid autocommit overhead. */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->query( 'BEGIN;' );
 			foreach ( $order_ids as $order_id ) {
-				/* Get rid of old metadata */
+				/* Get rid of old trigrams */
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $tablename . ' WHERE i = %d', $order_id ) );
 				/* Retrieve and add the new metadata */
 				$resultset = $this->get_order_metadata( $order_id );
 				$this->insert_trigrams( $resultset );
+				unset( $resultset );
 			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->query( 'COMMIT;' );
 		}
 	}
 
@@ -584,6 +582,7 @@ QUERY;
 			$msg []  = $dberror;
 		}
 		$msg []  = ltrim( preg_replace( '/\s+/', ' ', $query ) );
+		$msg []  = $this->memory_get_usage_display();
 		$message = implode( ' ', array_filter( $msg ) );
 
 		$this->store_message( $message );
@@ -618,21 +617,6 @@ QUERY;
 			}
 			$ordersmeta = $wpdb->prefix . 'wc_orders_meta';
 			$orders     = $wpdb->prefix . 'wc_orders';
-			$tables     = array(
-				$wpdb->postmeta,
-				$ordersmeta,
-				$orders,
-				$wpdb->prefix . 'woocommerce_order_items',
-				$wpdb->prefix . 'wc_order_addresses',
-			);
-
-			foreach ( $tables as $table ) {
-				$tbl                = $wpdb->get_col( "SHOW CREATE TABLE $table", 1 );
-				$messages[ $table ] = array(
-					'label' => $table,
-					'value' => $tbl,
-				);
-			}
 			$this->add_message( $messages, 'post-types',
 				$this->get_counts( "SELECT post_type, COUNT(*) num FROM $wpdb->posts GROUP BY post_type" ) );
 			$this->add_message( $messages, 'order-postmeta-key',
@@ -663,6 +647,8 @@ QUERY;
 			} catch( \Exception $e ) {
 				$countout = $e->getMessage();
 			}
+			$option = $this->get_option();
+
 			$fields                         = array(
 
 				'explanation'   => array(
@@ -679,6 +665,14 @@ QUERY;
 					'debug' => __( 'Please create a support topic at', 'fast-woo-order-lookup' ) . ' ' . 'https://wordpress.org/support/plugin/fast-woo-order-lookup/' . ' ' .
 					           __( 'and paste this site info (all of it please) into the topic. We will take a look.', 'fast-woo-order-lookup' ),
 
+				),
+				'options'       => array(
+					'label' => __( 'Configuration', 'fast-woo-order-lookup' ),
+					'value' => $this->flatten( $option ),
+				),
+				'memory'        => array(
+					'label' => __( 'Memory Usage', 'fast-woo-order-lookup' ),
+					'value' => $this->memory_get_usage_display(),
 				),
 				'woo-features'  => array(
 					'label' => __( 'WooCommerce Features', 'fast-woo-order-lookup' ),
@@ -700,6 +694,22 @@ QUERY;
 
 	}
 
+	private function flatten( $a ) {
+		$result = array();
+		foreach ( $a as $k => $v ) {
+			if ( is_array( $v ) ) {
+				if ( array_key_exists( 'local_value', $v ) ) {
+					$v = $v['local_value'];
+				} else {
+					$v = var_export( $v, true );
+				}
+			}
+			$result [] = $k . ':' . $v;
+		}
+
+		return implode( '; ', $result );
+	}
+
 	private function add_message( &$messages, $tag, $message ) {
 		$messages [ $tag ] = array(
 			'label' => $tag,
@@ -719,7 +729,7 @@ QUERY;
 				$out [] = $item . ':' . $row->num;
 			}
 
-			return implode( ';', $out );
+			return implode( '; ', $out );
 		} catch( \Exception $e ) {
 			return 'exception ' . $e->getMessage() . ' ' . ( $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection' ) . ': ' . $query;
 		}
@@ -735,21 +745,12 @@ QUERY;
 	 */
 	private function insert_trigrams( $resultset ) {
 		global $wpdb;
-		$tablename = $this->tablename;
-
+		$trigrams = array();
 		foreach ( $this->get_trigrams( $resultset ) as $trigram ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$query = $wpdb->prepare( "INSERT IGNORE INTO $tablename (t, i) VALUES (%s, %d);", $trigram[0], $trigram[1] );
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-			$status = $wpdb->query( $query );
-
-			if ( false === $status ) {
-				$this->store_message( 'Trigram insertion error: ' . $wpdb->last_error );
-				$textdex_status          = $this->get_option();
-				$textdex_status['error'] = 'Trigram insertion error: ' . $wpdb->last_error;
-				$this->update_option( $textdex_status );
-			}
+			$trigrams[ $wpdb->prepare( '(%s,%d)', $trigram[0], $trigram[1] ) ] = 1;
 		}
+		$this->do_insert_statement( $trigrams, 'single' );
+		unset ( $trigrams );
 	}
 
 	/**
@@ -785,23 +786,30 @@ QUERY;
 	}
 
 	/**
+	 * Inserts an associative array of trigrams, where the values are in the keys.
+	 *
+	 * We'll sort the trigrams before trying to insert them in the hopes of avoiding order-dependent deadlocks.
+	 *
 	 * @param array $trigrams
 	 *
 	 * @return void
 	 */
-	private function do_insert_statement( $trigrams ) {
+	private function do_insert_statement( $trigrams, $usecase = 'bulk' ) {
 		global $wpdb;
 		if ( ! is_array( $trigrams ) || 0 === count( $trigrams ) ) {
 			return;
 		}
+		$keys = array_keys( $trigrams );
+		sort( $keys );
 		$query = "INSERT IGNORE INTO $this->tablename (t, i) VALUES "
-		         . implode( ',', array_keys( $trigrams ) );
+		         . implode( ',', $keys );
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $query );
 		if ( false === $result ) {
-			$this->store_message( 'Trigram insertion error: ' . $wpdb->last_error );
+			$msg = 'Trigram ' . $usecase . ' insertion error: ' . $wpdb->last_error;
+			$this->store_message( $msg );
 			$textdex_status          = $this->get_option();
-			$textdex_status['error'] = 'Trigram insertion error: ' . $wpdb->last_error;
+			$textdex_status['error'] = $msg;
 			$this->update_option( $textdex_status );
 		} else {
 			$this->attempted_inserts += count( $trigrams );
@@ -917,6 +925,45 @@ QUERY;
 				$first
 			) );
 
+	}
+
+	/**
+	 * @return string Current memory usage.
+	 */
+	private function memory_get_usage_display() {
+		$result = '';
+		try {
+			$current = memory_get_usage();
+			$result  = number_format( $current / ( 1024.0 * 1024.0 ), 1 ) . 'MiB';
+			$limit   = $this->memory_get_limit();
+			$percent = number_format( 100.0 * $current / $limit, 1 );
+			$result  .= ' ';
+			$result  .= $percent;
+			$result  .= '%';
+		} catch( \Exception $e ) {
+			/* Empty, intentionally. Don't crash on percentage memory computation. */
+		}
+
+		return $result;
+	}
+
+	public function memory_get_limit() {
+		$limit  = ini_get( 'memory_limit' );
+		$unit   = $limit[ strlen( $limit ) - 1 ];
+		$factor = 1;
+		( $unit === 'k' ) && $factor = 1000;
+		( $unit === 'K' ) && $factor = 1024;
+		( $unit === 'm' ) && $factor = 1000000;
+		( $unit === 'M' ) && $factor = 1024 * 1024;
+		( $unit === 'g' ) && $factor = 1000000000;
+		( $unit === 'G' ) && $factor = 1024 * 1024 * 1024;
+		( $unit === 't' ) && $factor = 1000000000000;
+		( $unit === 'T' ) && $factor = 1024 * 1024 * 1024 * 1024;
+		( $unit === 'p' ) && $factor = 1000000000000000;
+		( $unit === 'P' ) && $factor = 1024 * 1024 * 1024 * 1024 * 1024;
+		( $factor > 1 ) && $limit = substr( $limit, 0, - 1 ) * $factor;
+
+		return $limit;
 	}
 
 }
