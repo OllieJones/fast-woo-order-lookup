@@ -58,7 +58,7 @@ class Custom_Fields {
 		if ( is_array( $cached_keys ) ) {
 			return $cached_keys;
 		} else {
-			$limit = apply_filters( 'postmeta_form_limit', 30 );
+			$limit       = apply_filters( 'postmeta_form_limit', 30 );
 			$orders_meta = wc_get_container()->get( OrdersTableDataStoreMeta::class );
 			if ( method_exists( $orders_meta, 'get_meta_keys' ) ) {
 				if ( @version_compare( WOOCOMMERCE_VERSION, '9.0.0', '<' ) ) {
@@ -67,7 +67,9 @@ class Custom_Fields {
 					add_filter( 'query', array( $this, 'postmeta_form_keys_query' ), 1 );
 				}
 				$keys = wc_get_container()->get( OrdersTableDataStoreMeta::class )->get_meta_keys( $limit );
-			} else {
+			}
+			/* Legacy systems without rows in wp_wc_ordermeta generate empty results */
+			if ( ! is_array( $keys ) || 0 === count( $keys ) ) {
 				global $wpdb;
 				$keys = $wpdb->get_col(
 					$wpdb->prepare(
@@ -90,8 +92,6 @@ class Custom_Fields {
 		return $keys;
 
 	}
-
-
 
 
 }

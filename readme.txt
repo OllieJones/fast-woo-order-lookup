@@ -4,11 +4,11 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 Contributors:  OllieJones
 Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
-Tested up to: 6.8.3
+Tested up to: 6.9
 Requires PHP: 5.6
 WC requires at least: 8.0
-WC tested up to: 10.2.1
-Stable tag: 1.2.1
+WC tested up to: 10.3.4
+Stable tag: 1.2.2
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -122,11 +122,15 @@ You can, if need be, change these batch sizes in your `wp-config.php` file. If y
 
 == Upgrade Notice ==
 
-Recent versions correct intermittent problems and deadlocks generating the index and maintaining the postmeta key cache, and handle legacy WooCommerce versions.
+Recent versions correct intermittent problems and deadlocks generating the index and maintaining the postmeta key cache, and handle legacy WooCommerce versions, especially those without data in the wp_wc_orders and wp_wc_ordermeta tables.
 
 Thanks to my loyal users for bringing these problems to my attention!
 
 == Changelog ==
+
+= 1.2.2 November 12, 2025
+
+Work with legacy WooCommerce installations without data in wp_wc_orders or wp_wc_ordermeta. Props to Christoffer Gisselfeldt.
 
 = 1.2.1 = November 11, 2025
 

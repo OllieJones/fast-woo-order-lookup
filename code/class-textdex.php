@@ -243,7 +243,7 @@ TABLE;
 		$last    = min( $first + $batch, $last );
 		$memory  = $this->memory_get_usage_display();
 
-		$this->debug_run_sync && error_log( "Batch: $first $last $memory" );
+		$this->debug_run_sync && error_log( "Batch before: $first $last $memory" );
 
 		$trigram_count = $textdex_status['trigram_batch'];
 
@@ -266,6 +266,8 @@ TABLE;
 			unset ( $resultset, $trigrams );
 			$textdex_status['current'] = $last;
 			$this->update_option( $textdex_status );
+			$this->debug_run_sync && error_log( "Batch after:  $first $last $memory" );
+
 
 			return $textdex_status['current'] < $textdex_status['last'];
 		} else {
@@ -920,10 +922,19 @@ QUERY;
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		return 0 + $wpdb->get_var( $wpdb->prepare(
-				'SELECT MIN(id) FROM ' . $wpdb->prefix . 'wc_orders WHERE id >= %d',
-				$first
+		$result = $wpdb->get_var( $wpdb->prepare(
+			'SELECT MIN(id) FROM ' . $wpdb->prefix . 'wc_orders WHERE id >= %d',
+			$first
+		) );
+		if ( ! is_numeric( $result ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$result = $wpdb->get_var( $wpdb->prepare(
+				'SELECT MIN(id) FROM ' . $wpdb->posts . ' WHERE post_type = %s AND id >= %d',
+				'shop_order', $first
 			) );
+		}
+
+		return ( ! is_numeric( $result ) ) ? null : ( (integer) $result );
 
 	}
 
