@@ -4,11 +4,11 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 Contributors:  OllieJones
 Tags: woocommerce, search, orders, database, performance
 Requires at least: 5.9
-Tested up to: 6.9
+Tested up to: 6.9.1
 Requires PHP: 5.6
 WC requires at least: 8.0
-WC tested up to: 10.3.4
-Stable tag: 1.2.2
+WC tested up to: 10.5.3
+Stable tag: 1.3.0
 Requires Plugins: woocommerce
 License: GPLv2
 Text Domain: fast-woo-order-lookup
@@ -122,11 +122,16 @@ You can, if need be, change these batch sizes in your `wp-config.php` file. If y
 
 == Upgrade Notice ==
 
-Recent versions correct intermittent problems and deadlocks generating the index and maintaining the postmeta key cache, and handle legacy WooCommerce versions, especially those without data in the wp_wc_orders and wp_wc_ordermeta tables.
+The plugin now uses custom order table fields for searching. Specifically, it uses the fields
+added by the `woocommerce_order_table_search_query_meta_keys` and `woocommerce_shop_order_search_fields` filters.
 
-Thanks to my loyal users for bringing these problems to my attention!
+It is necessary to deactivate and reactivate this plugin after adding new custom search fields to regenerate the trigram index.
 
 == Changelog ==
+
+= 1.3.0 March 3, 2026
+
+Pick up and use extra search meta keys from the `woocommerce_order_table_search_query_meta_keys` and `woocommerce_shop_order_search_fields` filters.
 
 = 1.2.2 November 12, 2025
 

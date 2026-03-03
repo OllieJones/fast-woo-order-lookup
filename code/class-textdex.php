@@ -40,13 +40,13 @@ class Textdex {
 		global $wpdb;
 		$this->tablename            = $wpdb->prefix . 'fwol';
 		$this->meta_keys_to_monitor = array(
-			'_billing_address_index'  => 1,
-			'_shipping_address_index' => 1,
-			'_billing_last_name'      => 1,
-			'_billing_email'          => 1,
-			'_billing_phone'          => 1,
-			'_order_number_formatted' => 1,
-			'_order_number'           => 1
+			'_billing_address_index',
+			'_shipping_address_index',
+			'_billing_last_name',
+			'_billing_email',
+			'_billing_phone',
+			'_order_number_formatted',
+			'_order_number'
 		);
 
 		$this->option_name = FAST_WOO_ORDER_LOOKUP_SLUG . 'textdex_status';
@@ -475,19 +475,29 @@ TABLE;
 		$charset    = $wpdb->charset;
 		$collation  = $wpdb->collate;
 
+		$keys = $this->get_keys_to_monitor( $this->meta_keys_to_monitor );
+		$in_clause = ' IN(' . implode( ', ', array_map( function( $item ) {
+				global $wpdb;
+
+				return $wpdb->prepare( '%s', $item );
+			}, $keys ) ) . ') ';
 
 		$query = <<<QUERY
 				SELECT id, value
 				FROM (
 				SELECT post_id id, CONVERT( meta_value USING $charset) COLLATE $collation value
 				  FROM $postmeta
-				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_billing_last_name','_billing_email','_billing_phone','_order_number','_order_number_formatted')
+				 WHERE meta_key
+QUERY
+		         . $in_clause . <<<QUERY
 				   AND post_id >= %d and post_id < %d
 
 				UNION ALL
 				SELECT order_id id, CONVERT( meta_value USING $charset) COLLATE $collation value
 				  FROM $ordersmeta
-				 WHERE meta_key IN ('_billing_address_index','_shipping_address_index','_order_number','_order_number_formatted')
+				 WHERE meta_key
+QUERY
+		         . $in_clause . <<<QUERY
 				   AND order_id >= %d and order_id < %d
 
 				UNION ALL
@@ -649,6 +659,7 @@ QUERY;
 			} catch( \Exception $e ) {
 				$countout = $e->getMessage();
 			}
+			$this->add_message( $messages, 'keys-monitored', implode('; ', $this->get_keys_to_monitor( $this->meta_keys_to_monitor)));
 			$option = $this->get_option();
 
 			$fields                         = array(
@@ -977,5 +988,26 @@ QUERY;
 		return $limit;
 	}
 
+	/**
+	 * Get the list of meta keys to monitor, including added keys.
+	 *
+	 * @param array $keys The default keys to monitor.
+	 *
+	 * @return array The final list of keys to monitor.
+	 */
+	private function get_keys_to_monitor ( $keys ) {
+		$keys_1 = apply_filters(
+			'woocommerce_order_table_search_query_meta_keys',
+			$keys
+		);
+		$keys_2 = apply_filters(
+			'woocommerce_shop_order_search_fields',
+			$keys
+		);
+
+		return array_map('sanitize_text_field',
+			array_unique( array_merge( $keys_1, $keys_2 ) ) );
+
+	}
 }
 
