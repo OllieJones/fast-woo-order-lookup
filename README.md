@@ -5,7 +5,7 @@ Plugin URI: https://plumislandmedia.net/wordpress-plugins/fast-woo-order-lookup/
 **Contributors:**  OllieJones \
 **Tags:** woocommerce, search, orders, database, performance \
 **Requires at least:** 5.9 \
-**Tested up to:** 6.9.1 \
+**Tested up to:** 7.0 \
 **Requires PHP:** 5.6 \
 **WC requires at least:** 8.0 \
 **WC tested up to:** 10.5.3 \
