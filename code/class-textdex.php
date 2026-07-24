@@ -169,6 +169,7 @@ TABLE;
 			if ( $this->debug_run_sync ) {
 				$this->load_batch();
 			} else {
+				add_filter('action_scheduler_queue_runner_concurrent_batches', function() { return 1; });
 				if ( ! as_has_scheduled_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup' ) ) {
 					as_enqueue_async_action( 'fast_woo_order_lookup_textdex_action', array(), 'fast_woo_order_lookup', true );
 				}
