@@ -71,15 +71,14 @@ class Textdex {
 		if ( array_key_exists( 'new', $textdex_status ) ) {
 			$this->capture_query( 'Indexing start', 'event', false );
 			$collation = $wpdb->collate;
-			$table     = <<<TABLE
-CREATE TABLE $tablename (
+			$table     =
+"CREATE TABLE $tablename (
 	t CHAR(3) NOT NULL COLLATE $collation,
     i BIGINT NOT NULL,
 	PRIMARY KEY (t, i),
 	KEY i (i)
 )
-COMMENT 'Fast Woo Order Lookup plugin trigram table, created on activation, dropped on deactivation.';
-TABLE;
+COMMENT 'Fast Woo Order Lookup plugin trigram table, created on activation, dropped on deactivation.';";
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$result = $wpdb->query( $table );
 			if ( false === $result ) {
@@ -89,7 +88,8 @@ TABLE;
 					$textdex_status['error'] = 'Table creation error: ' . $wpdb->last_error;
 					$this->update_option( $textdex_status );
 				} else {
-					$wpdb->query( 'TRUNCATE TABLE ' . $tablename );
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE ' . $tablename ) );
 				}
 			}
 			unset ( $textdex_status['new'] );
@@ -244,7 +244,7 @@ TABLE;
 		$last    = min( $first + $batch, $last );
 		$memory  = $this->memory_get_usage_display();
 
-		$this->debug_run_sync && error_log( "Batch before: $first $last $memory" );
+		// $this->debug_run_sync && error_log( "Batch before: $first $last $memory" );
 
 		$trigram_count = $textdex_status['trigram_batch'];
 
@@ -267,7 +267,7 @@ TABLE;
 			unset ( $resultset, $trigrams );
 			$textdex_status['current'] = $last;
 			$this->update_option( $textdex_status );
-			$this->debug_run_sync && error_log( "Batch after:  $first $last $memory" );
+			// $this->debug_run_sync && error_log( "Batch after:  $first $last $memory" );
 
 
 			return $textdex_status['current'] < $textdex_status['last'];
@@ -483,22 +483,19 @@ TABLE;
 				return $wpdb->prepare( '%s', $item );
 			}, $keys ) ) . ') ';
 
-		$query = <<<QUERY
-				SELECT id, value
+		$query = "SELECT id, value
 				FROM (
 				SELECT post_id id, CONVERT( meta_value USING $charset) COLLATE $collation value
 				  FROM $postmeta
-				 WHERE meta_key
-QUERY
-		         . $in_clause . <<<QUERY
+				 WHERE meta_key "
+		         . $in_clause . " 
 				   AND post_id >= %d and post_id < %d
 
 				UNION ALL
 				SELECT order_id id, CONVERT( meta_value USING $charset) COLLATE $collation value
 				  FROM $ordersmeta
-				 WHERE meta_key
-QUERY
-		         . $in_clause . <<<QUERY
+				 WHERE meta_key "
+		         . $in_clause . "
 				   AND order_id >= %d and order_id < %d
 
 				UNION ALL
@@ -537,8 +534,7 @@ QUERY
 				 WHERE order_id >= %d and order_id < %d
 				) a
 			WHERE value IS NOT NULL
-			ORDER BY id, value;
-QUERY;
+			ORDER BY id, value; " ;
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$query = $wpdb->prepare( $query,
 			array(
@@ -561,7 +557,7 @@ QUERY;
 				$first,
 				$last
 			) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$resultset = $wpdb->get_results( $query );
 		if ( null === $resultset ) { /* Empty arrays are falsely */
 			return $this->capture_query( '(indexing V' . FAST_WOO_ORDER_LOOKUP_VERSION . ')', 'indexing', true );
@@ -590,6 +586,8 @@ QUERY;
 		$msg []  = current_time( 'mysql', false );
 		$msg []  = $type;
 		if ( $is_error ) {
+			// We need detailed error diagnostics here.
+			// phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_error
 			$dberror = $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection';
 			$msg []  = 'error:';
 			$msg []  = $dberror;
@@ -650,6 +648,7 @@ QUERY;
 
 			$countout = '?';
 			try {
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$counts   = $wpdb->get_results( "SELECT COUNT(*) trigrams, MIN(i) first_id, MAX(i) last_id FROM $this->tablename", ARRAY_A );
 				$counts   = $counts[0];
 				$countout = array();
@@ -715,6 +714,7 @@ QUERY;
 				if ( array_key_exists( 'local_value', $v ) ) {
 					$v = $v['local_value'];
 				} else {
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export
 					$v = var_export( $v, true );
 				}
 			}
@@ -734,8 +734,10 @@ QUERY;
 	private function get_counts( $query ) {
 		global $wpdb;
 		try {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$rows = $wpdb->get_results( $query, OBJECT_K );
 			if ( null === $rows ) {
+				//phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_error
 				return 'error ' . ( $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection' ) . ': ' . $query;
 			}
 			$out = array();
@@ -745,6 +747,7 @@ QUERY;
 
 			return implode( '; ', $out );
 		} catch( \Exception $e ) {
+			//phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_error
 			return 'exception ' . $e->getMessage() . ' ' . ( $wpdb->dbh ? mysqli_error( $wpdb->dbh ) : 'No database connection' ) . ': ' . $query;
 		}
 
@@ -817,7 +820,7 @@ QUERY;
 		sort( $keys );
 		$query = "INSERT IGNORE INTO $this->tablename (t, i) VALUES "
 		         . implode( ',', $keys );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$result = $wpdb->query( $query );
 		if ( false === $result ) {
 			$msg = 'Trigram ' . $usecase . ' insertion error: ' . $wpdb->last_error;
@@ -854,8 +857,7 @@ QUERY;
 
 		$textdex_status = $this->get_option();
 
-		$query = <<<QUERY
-			SELECT  *
+		$query = "SELECT  *
 			  FROM (
 			    	SELECT MAX(post_id) maxmeta, MIN(post_id) minmeta
 			     	  FROM $postmeta
@@ -868,9 +870,8 @@ QUERY;
         	  JOIN (
  			      SELECT MAX(order_id) maxaddr, MIN(order_id) minaddr
 			        FROM $orderaddr 
-            ) c ON 1=1
-QUERY;
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            ) c ON 1=1 ";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$res   = $wpdb->get_results( $query );
 		$res   = $res[0];
 		$first = ( null !== $res->minmeta ) ? $res->minmeta : 0;
@@ -998,10 +999,12 @@ QUERY;
 	 */
 	private function get_keys_to_monitor ( $keys ) {
 		$keys_1 = apply_filters(
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 			'woocommerce_order_table_search_query_meta_keys',
 			$keys
 		);
 		$keys_2 = apply_filters(
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 			'woocommerce_shop_order_search_fields',
 			$keys
 		);

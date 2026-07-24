@@ -115,10 +115,7 @@ You can, if need be, change these batch sizes in your `wp-config.php` file. If y
 `define( 'FAST_WOO_ORDER_LOOKUP_TRIGRAM_BATCH_SIZE', 500 );` changes the trigram batch size to 500
 ## Upgrade Notice
 
-* This version supports WooCommerce 10.2.1.
-* It fixes a defect that caused indexing to malfunction sometimes.
-* It is now possible to control the batch sizes for indexing by setting `wp-config.php` constants *before activating* the plugin. See [Installation](#installation).
-* It improves indexing performance by skipping gaps in order numbers.
+Try to prevent intermittent Action Scheduler timeouts by reducing concurrency during index building.
 
 == Upgrade Notice ==
 

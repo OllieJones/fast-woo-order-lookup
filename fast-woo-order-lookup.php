@@ -13,7 +13,7 @@
  * Description:   Look up orders faster in large WooCommerce stores with many orders.
  * Version:       1.3.0
  * Requires PHP: 5.6
- * Requires at least: 5.8
+ * Requires at least: 5.9
  * Tested up to: 7.0
  * WC requires at least: 8.0
  * WC tested up to: 10.5.3
@@ -454,7 +454,7 @@ class FastWooOrderLookup
         $plugin_meta[] = sprintf(
             '<a href="%1$s"><span class="dashicons dashicons-star-filled" aria-hidden="true" style="font-size:14px;line-height:1.3"></span>%2$s</a>',
             'https://github.com/sponsors/OllieJones',
-            esc_html_x('Sponsor', 'verb', 'index-wp-users-for-speed')
+            esc_html_x('Sponsor', 'verb', 'fast-woo-order-lookup')
         );
 
         return $plugin_meta;

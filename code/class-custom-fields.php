@@ -58,6 +58,7 @@ class Custom_Fields {
 		if ( is_array( $cached_keys ) ) {
 			return $cached_keys;
 		} else {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 			$limit       = apply_filters( 'postmeta_form_limit', 30 );
 			$orders_meta = wc_get_container()->get( OrdersTableDataStoreMeta::class );
 			if ( method_exists( $orders_meta, 'get_meta_keys' ) ) {
@@ -71,6 +72,7 @@ class Custom_Fields {
 			/* Legacy systems without rows in wp_wc_ordermeta generate empty results */
 			if ( ! is_array( $keys ) || 0 === count( $keys ) ) {
 				global $wpdb;
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 				$keys = $wpdb->get_col(
 					$wpdb->prepare(
 						"SELECT DISTINCT meta_key
